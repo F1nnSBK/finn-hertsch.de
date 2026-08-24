@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://finn-hertsch.de/sitemap-index.xml

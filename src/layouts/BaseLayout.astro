@@ -20,8 +20,21 @@ const {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content={description} />
+    <meta name="author" content="Finn Hertsch" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site || "https://finn-hertsch.de")} />
+    
+    <!-- Open Graph / SEO -->
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={new URL(Astro.url.pathname, Astro.site || "https://finn-hertsch.de")} />
+    <meta property="og:locale" content={lang === 'de' ? 'de_DE' : 'en_US'} />
+    <meta property="og:site_name" content="Finn Hertsch" />
+
     <title>{title}</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
     <slot name="head" />
 
     <script is:inline>
