@@ -32,7 +32,7 @@ function formatDate(dateStr: string) {
       <li class="essay-item">
         <div class="date mono muted text-sm">{formatDate(essay.data.date)}</div>
         <h2 class="essay-title">
-          <a href={`/essays/${essay.id}`}>{essay.data.title}</a>
+          <a href={`/essays/${essay.id}`} data-astro-prefetch="hover">{essay.data.title}</a>
         </h2>
         <p class="essay-desc">{essay.data.description}</p>
       </li>
