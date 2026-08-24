@@ -1,0 +1,71 @@
+---
+interface Props {
+  title: string;
+  authors: string[];
+  venue: string;
+  url?: string;
+  description: string;
+  status: string;
+}
+
+const { title, authors, venue, url, description, status } = Astro.props;
+---
+
+<li class="publication">
+  <div class="pub-header">
+    <span class="venue mono muted">[{venue}]</span>
+    {url ? (
+      <a href={url} target="_blank" rel="noopener noreferrer" class="title">
+        {title}
+      </a>
+    ) : (
+      <span class="title muted">{title}</span>
+    )}
+  </div>
+  
+  <div class="authors">
+    {authors.map((author, index) => (
+      <Fragment>
+        {author === "Finn Hertsch" ? <span class="highlight-author">{author}</span> : author}{index < authors.length - 1 ? ", " : ""}
+      </Fragment>
+    ))}
+  </div>
+  
+  <p class="meta muted">
+    {description} <em class="status">({status})</em>
+  </p>
+</li>
+
+<style>
+  .publication {
+    margin-bottom: 2rem !important;
+  }
+  .pub-header {
+    margin-bottom: 0.25rem;
+  }
+  .venue {
+    font-size: 0.85rem;
+    margin-right: 0.5rem;
+    color: var(--fg-muted);
+  }
+  .title {
+    display: inline;
+  }
+  .authors {
+    font-size: 0.95rem;
+    margin-bottom: 0.25rem;
+    color: var(--fg);
+  }
+  .highlight-author {
+    font-weight: 600;
+  }
+  .meta {
+    font-size: 0.9rem;
+    margin-top: 0;
+    margin-bottom: 0;
+    line-height: 1.5;
+  }
+  .status {
+    font-style: italic;
+  }
+</style>

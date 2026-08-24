@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import Publication from '../../components/Publication.astro';
 ---
 
 <BaseLayout title="Finn Hertsch" lang="en">
@@ -21,13 +22,14 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   <section class="section">
     <h2>Research &amp; Publications</h2>
     <ul class="paper-list">
-      <li>
-        <span class="venue mono">[SKILL 2026 / arXiv]</span>
-        <a href="https://arxiv.org/abs/2607.26832" target="_blank" rel="noopener noreferrer">
-          Kairos: Numerically Robust News Recommendation under Item Cold-Start
-        </a>
-        <p class="meta muted">Numerically stable LinUCB bandits with Cholesky updates on live streams. <em>(Accepted for presentation at SKILL 2026 at INFORMATIK Festival in Dresden)</em></p>
-      </li>
+      <Publication 
+        title="Kairos: Numerically Robust News Recommendation under Item Cold-Start"
+        authors={["Finn Hertsch"]}
+        venue="SKILL 2026 / arXiv"
+        url="https://arxiv.org/abs/2607.26832"
+        description="Numerically stable LinUCB bandits with Cholesky updates on live streams."
+        status="Accepted for presentation at SKILL 2026 at INFORMATIK Festival in Dresden"
+      />
     </ul>
   </section>
 
