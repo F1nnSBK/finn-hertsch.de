@@ -44,6 +44,13 @@ html {
   line-height: 1.7;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+  font-variant-numeric: oldstyle-nums;
+  hanging-punctuation: first last;
+}
+
+@keyframes bookFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 body {
@@ -52,6 +59,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  animation: bookFadeIn 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
 
 .container {
@@ -62,13 +70,15 @@ body {
 a {
   color: var(--link);
   text-decoration: underline;
-  text-underline-offset: 3px;
+  text-decoration-color: var(--border);
+  text-underline-offset: 4px;
   text-decoration-thickness: 1px;
+  transition: text-decoration-color 0.3s ease, color 0.3s ease;
 }
 
 a:hover {
   color: var(--link-hover);
-  text-decoration-thickness: 1.5px;
+  text-decoration-color: var(--link-hover);
 }
 
 h1, h2, h3, h4 {
@@ -120,8 +130,18 @@ blockquote {
 
 hr {
   border: none;
-  border-top: 1px solid var(--border);
-  margin: 2.5rem 0;
+  margin: 3.5rem 0;
+  text-align: center;
+  overflow: visible;
+  height: 0;
+}
+
+hr::after {
+  content: "⁂";
+  font-size: 1.5rem;
+  color: var(--border);
+  line-height: 0;
+  font-family: var(--font-serif);
 }
 
 code {
