@@ -5,11 +5,11 @@ description: "Über den Mythos der C++-Exklusivität, LMAX-Disruptor-Muster in J
 lang: "de"
 ---
 
-Es gibt einen hartnäckigen Mythos in der High-Frequency- und Systems-Engineering-Welt: dass niedrige Latenzen das exklusive Vorrecht von C, C++ oder Rust seien. Wer jemals in einem Handelsraum stand oder Low-Latency-Streaming-Engines auditiert hat, kennt die reflexartige Forderung: *„Schreib es in C++, sonst ist es zu langsam.“*
+Es gibt einen hartnäckigen Mythos in der High-Frequency- und Systems-Engineering-Welt: dass extrem niedrige Latenzen das exklusive Vorrecht von C, C++ oder Rust seien. Wer jemals Low-Latency-Streaming-Engines analysiert hat, kennt die oft reflexartige Annahme: *„Schreib es in C++, sonst ist es zu langsam.“*
 
-Doch die physische Hardware – der Siliziumkristall, die Registerbänke, die Prefetcher und die dreistufige Cache-Hierarchie – hat kein Konzept von Programmiersprachen. Eine CPU führt keine Syntax aus. Sie liest Instruktionsströme und operiert auf Speicheradressen.
+Doch die physische Hardware – der Siliziumkristall, die Registerbänke, die Prefetcher und die dreistufige Cache-Hierarchie – hat kein intrinsisches Konzept von Programmiersprachen. Eine CPU führt keine Syntax aus, sie operiert auf Speicheradressen.
 
-Wenn dein Algorithmus an einer Cache-Line-Grenze scheitert oder durch unvorhersehbare Pointer-Chasing-Muster den Translation Lookaside Buffer (TLB) flusht, ist es der CPU vollkommen gleichgültig, ob dieser Fehltritt in idiomatischem C++23 oder in Java kompiliert wurde: Beide verhungern exakt 60 bis 80 Nanosekunden lang im Hauptspeicher.
+Wenn ein Algorithmus an einer Cache-Line-Grenze scheitert oder durch unvorhersehbare Pointer-Chasing-Muster den Translation Lookaside Buffer (TLB) flusht, ist es der CPU auf Architektur-Ebene gleichgültig, in welcher Sprache dies geschrieben wurde: Der Thread blockiert so oder so für 60 bis 80 Nanosekunden beim Zugriff auf den Hauptspeicher.
 
 ---
 
@@ -104,11 +104,11 @@ long index = sequence & RING_BUFFER_MASK; // 1 CPU-Zyklus
 
 ## Fazit
 
-Effizienz entsteht nicht durch das Logo des Compilers, sondern durch den Respekt vor der Hardware-Physik:
+Wirkliche Effizienz entsteht nicht primär durch die Wahl der Programmiersprache, sondern durch das tiefe Verständnis der zugrundeliegenden Hardware-Physik:
 
-1. **Keine Allokationen im Hot-Path.**
-2. **Lineare Speicher-Layouts statt Pointer-Chains.**
-3. **Explizites Alignment gegen False Sharing.**
-4. **Lock-Free Concurrency mit minimalen Memory Barriers.**
+1. **Vermeidung von Allokationen im Hot-Path.**
+2. **Lineare Speicher-Layouts statt unvorhersehbarem Pointer-Chasing.**
+3. **Explizites Memory-Alignment zur Vermeidung von False Sharing.**
+4. **Lock-Free Concurrency mit gezielten Memory Barriers.**
 
-Wer diese Prinzipien beherrscht, baut in Java 25 Pipelines, die C++-Code ohne mechanische Sympathie um Längen schlagen. Dem Prozessor ist es egal – er will nur saubere Cache-Lines.
+Mit modernen Features wie Javas Project Panama lassen sich diese Prinzipien heute auch in managed Languages konsequent umsetzen. Die CPU wertet letztlich keine Syntax – sie belohnt in erster Linie eine saubere Datenlokalität und den respektvollen Umgang mit der Cache-Hierarchie.

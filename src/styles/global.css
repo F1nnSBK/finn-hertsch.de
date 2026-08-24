@@ -211,3 +211,40 @@ pre code {
   overflow-y: hidden;
   padding: 0.5rem 0;
 }
+
+/* ==================================================
+   MOBILE / RESPONSIVE REFINEMENTS
+   ================================================== */
+@media (max-width: 768px) {
+  html {
+    font-size: 17px;
+    line-height: 1.6;
+  }
+
+  body {
+    padding: 2rem 1.25rem;
+  }
+
+  h1 {
+    font-size: 1.8rem;
+  }
+
+  h2 {
+    font-size: 1.3rem;
+  }
+
+  hr {
+    margin: 2.5rem 0;
+  }
+
+  .container {
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  /* Prevent KaTeX math equations from breaking the mobile layout */
+  .katex-display {
+    font-size: 0.9em;
+    padding-bottom: 0.5rem;
+  }
+}
