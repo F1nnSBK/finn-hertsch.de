@@ -1,0 +1,76 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+<BaseLayout title="Impressum | Finn Hertsch">
+  <div class="top-nav">
+    <a href="/" class="back-link mono">← finn-hertsch.de</a>
+  </div>
+  <header class="page-header">
+    <h1>Impressum</h1>
+  </header>
+  <div class="content">
+    <p class="muted">Angaben gemäß § 5 TDDG</p>
+    <div id="contact-container">
+      <p id="scramble-text" class="mono text-sm muted" style="white-space: pre-wrap; line-height: 1.8;">Fni nHtercsh
+[Sartße u. Hasnumemr]
+82839 Wngane mi Algläu
+
+E-Mial: mial[at]ifnn-hercths[dot]de</p>
+      
+      <a href="#" id="unscramble-btn" class="mono text-sm" style="display: inline-block; margin-top: 1rem;">[unscramble]</a>
+    </div>
+
+    <p class="muted text-sm" style="margin-top: 3rem;">
+      Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV:<br/>
+      Finn Hertsch (Anschrift wie oben)
+    </p>
+  </div>
+</BaseLayout>
+
+<script is:inline>
+  var btn = document.getElementById('unscramble-btn');
+  var textEl = document.getElementById('scramble-text');
+  
+  // UTF-8 Base64 Encoded Text (Ersetze diesen String später mit deinem echten generierten Base64-String)
+  // Decodiert zu: 
+  // Finn Hertsch
+  // [Deine Straße und Hausnummer]
+  // 88239 Wangen im Allgäu
+  //
+  // E-Mail: [Deine E-Mail-Adresse]
+  var realTextB64 = "RmlubiBIZXJ0c2NoCltEZWluZSBTdHJhw59lIHVuZCBIYXVzbnVtbWVyXQo4ODIzOSBXYW5nZW4gaW0gQWxsZ8OkdQoKRS1NYWlsOiBbRGVpbmUgRS1NYWlsLUFkcmVzc2Vd";
+
+  btn.addEventListener('click', function(e) {
+    e.preventDefault();
+    // Sauberes UTF-8 Decode
+    var realText = decodeURIComponent(escape(atob(realTextB64)));
+    var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%&*';
+    var iterations = 0;
+    
+    var interval = setInterval(function() {
+      textEl.innerText = realText.split('').map(function(char, index) {
+        if (char === '\n' || char === ' ') return char;
+        if (index < iterations) return char;
+        return chars[Math.floor(Math.random() * chars.length)];
+      }).join('');
+      
+      iterations += 0.5; // Steuert die Geschwindigkeit des "Dekodierens"
+      
+      if (iterations >= realText.length) {
+        clearInterval(interval);
+        textEl.innerText = realText;
+        textEl.style.color = 'var(--fg)';
+        btn.style.display = 'none';
+      }
+    }, 25);
+  });
+</script>
+
+<style>
+  .top-nav { margin-bottom: 2.5rem; }
+  .back-link { font-size: 0.9rem; color: var(--fg-muted); text-decoration: none; }
+  .back-link:hover { color: var(--fg); text-decoration: underline; }
+  .page-header h1 { margin-bottom: 1.5rem; font-size: 1.5rem; }
+  .content p { line-height: 1.6; margin-bottom: 1.5rem; }
+  .text-sm { font-size: 0.85rem; }
+</style>

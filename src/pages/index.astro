@@ -1,0 +1,203 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Finn Hertsch">
+  <div class="intro">
+    <h1 class="name" style="margin-bottom: 0.25rem;">Finn Hertsch</h1>
+    <div id="email-container" class="mono text-sm muted" style="margin-bottom: 1.5rem;">
+      <span id="scramble-email">s.uregfpu@tzk.qr</span>
+      <a href="#" id="unscramble-email-btn" style="margin-left: 0.5rem; color: var(--fg-muted);">[unscramble]</a>
+    </div>
+    <p class="bio">
+      Dualer Student in Data Science &amp; KI bei der Waldner Holding.<br />
+      Forschung zu geometrischem Representation Learning, selbstüberwachter Computer Vision und sub-mikrosekunden Stream Processing.<br />
+      Wangen im Allgäu &amp; Remote.
+    </p>
+  </div>
+
+  <hr />
+
+  <section class="section">
+    <h2>Forschung &amp; Publikationen</h2>
+    <ul class="paper-list">
+      <li>
+        <span class="venue mono">[SKILL 2026 / arXiv]</span>
+        <a href="https://github.com/F1nnSBK/Project-Kairos" target="_blank" rel="noopener noreferrer">
+          Kairos: Numerically Robust News Recommendation under Item Cold-Start
+        </a>
+        <p class="meta muted">Numerisch stabile LinUCB-Banditen mit Cholesky-Updates auf Live-Streams. <em>(Akzeptiert für die SKILL 2026, INFORMATIK Festival Dresden)</em></p>
+      </li>
+    </ul>
+  </section>
+
+  <section class="section">
+    <h2>Software &amp; Systeme</h2>
+    <ul class="link-list">
+      <li>
+        <a href="https://github.com/F1nnSBK/market-data-engine" target="_blank" rel="noopener noreferrer">
+          market-data-engine
+        </a>
+        <span class="muted">— Zero-Copy HFT Pipeline in Java 25 (Project Panama FFM, Cache-Line-Aligned Shared Memory).</span>
+      </li>
+
+      <li>
+        <a href="https://github.com/F1nnSBK/Project-Kairos" target="_blank" rel="noopener noreferrer">
+          project-kairos
+        </a>
+        <span class="muted">— Latenzarme Live-Empfehlungs-Engine in Julia (Oxygen.jl) und Nuxt 4.</span>
+      </li>
+      <li>
+        <a href="https://github.com/F1nnSBK" target="_blank" rel="noopener noreferrer">
+          github.com/F1nnSBK
+        </a>
+        <span class="muted">— Open Source Repositories &amp; Forschungs-Code.</span>
+      </li>
+    </ul>
+  </section>
+
+  <hr />
+
+  <div class="nav-forward">
+    <a href="/essays" class="essay-link">→ /essays</a>
+  </div>
+</BaseLayout>
+
+<script is:inline>
+  // =====================================================================
+  // GEOMETRIC DEEP LEARNING DECRYPTOR
+  // WebAssembly & Stiefel Manifold Projections
+  // =====================================================================
+  var eBtn = document.getElementById('unscramble-email-btn');
+  var eTextEl = document.getElementById('scramble-email');
+
+  if (eBtn && eTextEl) {
+    eBtn.addEventListener('click', async function(e) {
+      e.preventDefault();
+      
+      const scrambledText = eTextEl.innerText;
+      
+      // 1. Initialize WebAssembly runtime
+      console.log("%c[WASM] Bootstrapping WebAssembly VM...", "color: #ff9900; font-family: monospace;");
+      const dummyWasm = new Uint8Array([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00, 0x01, 0x04, 0x01, 0x60, 0x00, 0x00, 0x03, 0x02, 0x01, 0x00, 0x07, 0x0a, 0x01, 0x06, 0x65, 0x6e, 0x67, 0x69, 0x6e, 0x65, 0x00, 0x00, 0x0a, 0x04, 0x01, 0x02, 0x00, 0x0b]);
+      try {
+        await WebAssembly.instantiate(dummyWasm);
+        console.log("%c[WASM] Kernel loaded. Tensor cores ready.", "color: #00ff00; font-family: monospace;");
+      } catch (e) {
+        console.error(e);
+      }
+
+      console.log("%c[GEO] Allocating 1-bit prefix Matryoshka embeddings...", "color: #00ccff; font-family: monospace;");
+      
+      // 2. Embed string into pseudo-Hilbert space (Float64Array)
+      const latentSpace = new Float64Array(scrambledText.length);
+      for(let i = 0; i < scrambledText.length; i++) {
+        latentSpace[i] = scrambledText.charCodeAt(i);
+      }
+
+      // 3. Geodesic traversal on the SO(n) Manifold
+      console.log("%c[GEO] Traversing Stiefel Manifold via geodesic ROT13 projections...", "color: #00ccff; font-family: monospace;");
+      
+      let iterations = 0;
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%&*';
+      
+      const interval = setInterval(function() {
+        eTextEl.innerText = Array.from(latentSpace).map(function(val, index) {
+          if (index < Math.floor(iterations)) {
+            // Geodesic projection completed for this dimension
+            let c = latentSpace[index];
+            if (c >= 65 && c <= 90) return String.fromCharCode(((c - 65 + 13) % 26) + 65);
+            if (c >= 97 && c <= 122) return String.fromCharCode(((c - 97 + 13) % 26) + 97);
+            return String.fromCharCode(c);
+          }
+          // Stochastic character sampling
+          return chars[Math.floor(Math.random() * chars.length)];
+        }).join('');
+        
+        iterations += 0.35; // Step size
+        
+        if (iterations >= latentSpace.length) {
+          clearInterval(interval);
+          // Ensure the final state is perfectly projected
+          const finalStr = Array.from(latentSpace).map(function(c) {
+            if (c >= 65 && c <= 90) return String.fromCharCode(((c - 65 + 13) % 26) + 65);
+            if (c >= 97 && c <= 122) return String.fromCharCode(((c - 97 + 13) % 26) + 97);
+            return String.fromCharCode(c);
+          }).join('');
+          eTextEl.innerHTML = '<a href="mailto:' + finalStr + '" style="color: var(--fg); text-decoration: none;">' + finalStr + '</a>';
+          eBtn.style.display = 'none';
+          console.log("%c[SYS] Projection stabilized. Real-world target mapped.", "color: #ff00ff; font-family: monospace;");
+        }
+      }, 30);
+    });
+  }
+</script>
+
+<style>
+  .intro {
+    margin-bottom: 2rem;
+  }
+
+  .name {
+    font-size: 2.2rem;
+    margin-bottom: 1rem;
+    letter-spacing: -0.02em;
+  }
+
+  .bio {
+    font-size: 1.05rem;
+    line-height: 1.65;
+    color: var(--fg);
+  }
+
+  .section {
+    margin: 2.5rem 0;
+  }
+
+  .section h2 {
+    font-size: 1.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 1.25rem;
+    color: var(--fg-muted);
+    font-family: var(--font-mono);
+    font-weight: 500;
+  }
+
+  .paper-list, .link-list {
+    list-style: none;
+    padding: 0;
+  }
+
+  .paper-list li, .link-list li {
+    margin-bottom: 1.5rem;
+  }
+
+  .venue {
+    font-size: 0.85rem;
+    margin-right: 0.5rem;
+    color: var(--fg-muted);
+  }
+
+  .meta {
+    font-size: 0.9rem;
+    margin-top: 0.25rem;
+    margin-bottom: 0;
+  }
+
+  .nav-forward {
+    margin-top: 3rem;
+    padding-bottom: 2rem;
+  }
+
+  .essay-link {
+    font-family: var(--font-mono);
+    font-size: 1.1rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .essay-link:hover {
+    text-decoration: underline;
+  }
+</style>

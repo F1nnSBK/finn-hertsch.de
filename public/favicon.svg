@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <style>
+    text { font-family: Charter, serif; font-size: 72px; font-weight: bold; fill: #111111; }
+    @media (prefers-color-scheme: dark) { text { fill: #ececec; } }
+  </style>
+  <text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle">F</text>
+</svg>

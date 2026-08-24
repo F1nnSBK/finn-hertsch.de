@@ -1,0 +1,101 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCollection, render } from 'astro:content';
+
+export async function getStaticPaths() {
+  const essays = await getCollection('essays');
+  return essays.map((entry) => ({
+    params: { slug: entry.id },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+
+function formatDate(dateStr: string) {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('de-DE', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+}
+---
+
+<BaseLayout title={`${entry.data.title} | Finn Hertsch`} description={entry.data.description}>
+  <div class="top-nav">
+    <a href="/essays" class="back-link mono">← /essays</a>
+  </div>
+
+  <article class="essay-article">
+    <header class="essay-header">
+      <div class="date mono muted text-sm">{formatDate(entry.data.date)}</div>
+      <h1 class="title">{entry.data.title}</h1>
+      <p class="summary muted italic">{entry.data.description}</p>
+    </header>
+
+    <hr />
+
+    <div class="essay-content">
+      <Content />
+    </div>
+
+    <hr />
+
+    <div class="bottom-nav">
+      <a href="/essays" class="back-link mono">← Zurück zur Übersicht</a>
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .top-nav {
+    margin-bottom: 2.5rem;
+  }
+
+  .back-link {
+    font-size: 0.9rem;
+    color: var(--fg-muted);
+    text-decoration: none;
+  }
+
+  .back-link:hover {
+    color: var(--fg);
+    text-decoration: underline;
+  }
+
+  .essay-header {
+    margin-bottom: 2rem;
+  }
+
+  .date {
+    margin-bottom: 0.5rem;
+  }
+
+  .title {
+    font-size: 2.1rem;
+    line-height: 1.25;
+    margin-bottom: 1rem;
+    letter-spacing: -0.02em;
+  }
+
+  .summary {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: var(--fg-muted);
+  }
+
+  .italic {
+    font-style: italic;
+  }
+
+  .essay-content {
+    margin: 2.5rem 0;
+  }
+
+  .bottom-nav {
+    margin-top: 3rem;
+    padding-bottom: 3rem;
+  }
+</style>

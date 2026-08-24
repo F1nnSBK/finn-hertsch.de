@@ -1,0 +1,90 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const essays = await getCollection('essays');
+essays.sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime());
+
+function formatDate(dateStr: string) {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('de-DE', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+}
+---
+
+<BaseLayout title="Essays | Finn Hertsch" description="Schriften über Systems Engineering, Representation Geometry und minimalistisches Machine Learning.">
+  <div class="top-nav">
+    <a href="/" class="back-link mono">← finn-hertsch.de</a>
+  </div>
+
+  <header class="page-header">
+    <h1>Essays &amp; Schriften</h1>
+    <p class="muted">Gedanken zu Systems Architecture, geometrischem Deep Learning und mechanischer Effizienz.</p>
+  </header>
+
+  <hr />
+
+  <ul class="essay-list">
+    {essays.map((essay) => (
+      <li class="essay-item">
+        <div class="date mono muted text-sm">{formatDate(essay.data.date)}</div>
+        <h2 class="essay-title">
+          <a href={`/essays/${essay.id}`}>{essay.data.title}</a>
+        </h2>
+        <p class="essay-desc">{essay.data.description}</p>
+      </li>
+    ))}
+  </ul>
+</BaseLayout>
+
+<style>
+  .top-nav {
+    margin-bottom: 2.5rem;
+  }
+
+  .back-link {
+    font-size: 0.9rem;
+    color: var(--fg-muted);
+    text-decoration: none;
+  }
+
+  .back-link:hover {
+    color: var(--fg);
+    text-decoration: underline;
+  }
+
+  .page-header h1 {
+    margin-bottom: 0.5rem;
+  }
+
+  .essay-list {
+    list-style: none;
+    padding: 0;
+    margin-top: 2rem;
+  }
+
+  .essay-item {
+    margin-bottom: 3rem;
+  }
+
+  .date {
+    margin-bottom: 0.35rem;
+  }
+
+  .essay-title {
+    font-size: 1.35rem;
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+  }
+
+  .essay-desc {
+    font-size: 0.98rem;
+    color: var(--fg-muted);
+    line-height: 1.6;
+    margin-bottom: 0;
+  }
+</style>
