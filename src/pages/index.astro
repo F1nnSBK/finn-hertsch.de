@@ -1,6 +1,5 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import Publication from '../components/Publication.astro';
 ---
 
 <BaseLayout title="Finn Hertsch">
@@ -9,12 +8,12 @@ import Publication from '../components/Publication.astro';
     <div id="email-container" class="mono text-sm muted" style="margin-bottom: 1.5rem;">
       <span id="scramble-email">s.uregfpu@tzk.qr</span>
       <a href="#" id="unscramble-email-btn" style="margin-left: 0.5rem; color: var(--fg-muted);">[unscramble]</a>
-      <span class="muted" style="margin: 0 0.25rem;">|</span>
-      <a href="https://scholar.google.com/citations?user=JZoMIcMAAAAJ&hl=en" target="_blank" rel="noopener noreferrer" style="color: var(--fg-muted);">[scholar]</a>
+      <span style="margin: 0 0.5rem; opacity: 0.5;">·</span>
+      <a href="https://scholar.google.com/citations?user=JZoMIcMAAAAJ&hl=en" target="_blank" rel="noopener noreferrer" style="color: var(--fg-muted);">[Google Scholar]</a>
     </div>
     <p class="bio">
-      Dualer Student in Data Science &amp; KI bei der Waldner Holding.<br />
-      Interessiert an Machine Learning, Datenarchitekturen und Systemprogrammierung.<br />
+      Dualer Student in Data Science &amp; KI an der DHBW Ravensburg.<br />
+      Forschung zu geometrischem Representation Learning, selbstüberwachter Computer Vision und Stream Processing.<br />
       Wangen im Allgäu &amp; Remote.
     </p>
   </div>
@@ -24,38 +23,43 @@ import Publication from '../components/Publication.astro';
   <section class="section">
     <h2>Forschung &amp; Publikationen</h2>
     <ul class="paper-list">
-      <Publication 
-        title="Kairos: Numerically Robust News Recommendation under Item Cold-Start"
-        authors={["Finn Hertsch"]}
-        venue="SKILL 2026 / arXiv"
-        url="https://arxiv.org/abs/2607.26832"
-        description="Numerisch stabile LinUCB-Banditen mit Cholesky-Updates auf Live-Streams."
-        status="Akzeptiert für die SKILL 2026, INFORMATIK Festival Dresden"
-      />
+      <li>
+        <span class="venue mono">[SKILL 2026 / arXiv]</span>
+        <a href="https://github.com/F1nnSBK/Project-Kairos" target="_blank" rel="noopener noreferrer">
+          Kairos: Numerically Robust News Recommendation under Item Cold-Start
+        </a>
+        <span class="mono text-sm muted" style="margin-left: 0.35rem;">[<a href="/research/kairos/" style="color: inherit;">Explorable</a>]</span>
+        <p class="meta muted">Numerisch stabile LinUCB-Banditen mit Cholesky-Updates auf Live-Streams. <em>(Akzeptiert für die SKILL 2026, INFORMATIK Festival Dresden)</em></p>
+      </li>
     </ul>
   </section>
 
   <section class="section">
-    <h2>Software &amp; Systeme</h2>
+    <h2>Code</h2>
     <ul class="link-list">
-      <li>
-        <a href="https://github.com/F1nnSBK/market-data-engine" target="_blank" rel="noopener noreferrer">
-          market-data-engine
-        </a>
-        <span class="muted">— Experimentelle Datenpipeline in Java 25 (Project Panama).</span>
-      </li>
-
-      <li>
-        <a href="https://github.com/F1nnSBK/Project-Kairos" target="_blank" rel="noopener noreferrer">
-          project-kairos
-        </a>
-        <span class="muted">— Prototypische Recommender-Engine in Julia (Oxygen.jl) und Nuxt 4.</span>
-      </li>
       <li>
         <a href="https://github.com/F1nnSBK" target="_blank" rel="noopener noreferrer">
           github.com/F1nnSBK
         </a>
-        <span class="muted">— Open Source Repositories &amp; Code.</span>
+        <span class="muted">— Open-Source-Repositories, Systeme &amp; Forschungs-Code.</span>
+      </li>
+    </ul>
+  </section>
+
+  <section class="section">
+    <h2>Empfohlene Lektüre</h2>
+    <ul class="link-list">
+      <li>
+        <a href="https://martinfowler.com/articles/mechanical-sympathy-principles.html" target="_blank" rel="noopener noreferrer">
+          Principles of Mechanical Sympathy
+        </a>
+        <span class="muted">— Martin Thompson &amp; Martin Fowler über Speicherzugriffsmuster, Cache Lines, False Sharing und das Single-Writer-Prinzip.</span>
+      </li>
+      <li>
+        <a href="https://people.freebsd.org/~lstewart/articles/cpumemory.pdf" target="_blank" rel="noopener noreferrer">
+          What Every Programmer Should Know About Memory
+        </a>
+        <span class="muted">— Ulrich Dreppers kanonische Abhandlung über CPU-Caches und Speicherhierarchien.</span>
       </li>
     </ul>
   </section>
@@ -63,7 +67,7 @@ import Publication from '../components/Publication.astro';
   <hr />
 
   <div class="nav-forward">
-    <a href="/essays" class="essay-link" data-astro-prefetch="hover">→ /essays</a>
+    <a href="/essays" class="essay-link">→ /essays</a>
   </div>
 </BaseLayout>
 
