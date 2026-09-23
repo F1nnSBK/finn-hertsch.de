@@ -1,0 +1,835 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kairos: Numerically Robust News Recommendation — Distill Article</title>
+  
+  <!-- Automatic Language Detection: redirect to German if browser is German -->
+  <script>
+    (function() {
+      var browserLang = navigator.language || navigator.userLanguage || '';
+      var params = new URLSearchParams(window.location.search);
+      if (browserLang.toLowerCase().startsWith('de') && params.get('lang') !== 'en') {
+        window.location.replace('/research/kairos/?lang=de');
+      }
+    })();
+  </script>
+
+  <!-- Distill Template v2 -->
+  <script src="https://distill.pub/template.v2.js"></script>
+
+  <!-- Plotly.js for 60fps 3D WebGL Ellipsoid Rendering -->
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+  <!-- KaTeX for Robust Mathematical Typography & Dark Mode Compatibility -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+
+  <style>
+    /* Minimalist styling matching finn-hertsch.de */
+    :root {
+      --bg: #faf8f5;
+      --fg: #1a1a1a;
+      --fg-muted: #666666;
+      --border: #e0deda;
+      --code-bg: #f2efe9;
+      --link: #1a1a1a;
+      --font-serif: Charter, "Bitstream Charter", "Sitka Text", Cambria, "EB Garamond", "Times New Roman", serif;
+      --font-mono: "JetBrains Mono", "SF Mono", "Fira Code", Menlo, Monaco, Consolas, monospace;
+      --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    html, body {
+      background-color: var(--bg);
+      color: var(--fg);
+      font-family: var(--font-serif);
+      font-size: 18px;
+      line-height: 1.7;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* Top navigation bar */
+    .top-nav {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 1.25rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .top-nav a {
+      color: var(--fg-muted);
+      text-decoration: none;
+      transition: color 0.15s ease;
+    }
+    .top-nav a:hover {
+      color: var(--fg);
+    }
+    .top-nav .lang-toggle {
+      font-weight: 600;
+    }
+
+    /* Mathematical display equations */
+    .math-display {
+      margin: 1.6rem 0;
+      text-align: center;
+      overflow-x: auto;
+      overflow-y: hidden;
+      font-size: 1.12em;
+      padding: 0.4rem 0;
+    }
+
+    /* Citations in light mode */
+    d-cite, .citation, .citation-number {
+      color: #1971c2 !important;
+      font-weight: 500;
+    }
+
+    /* Full Dark Mode Overrides for Distill Elements */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #111111;
+        --fg: #ececec;
+        --fg-muted: #8c8c8c;
+        --border: #282828;
+        --code-bg: #1a1a1a;
+        --link: #ececec;
+      }
+
+      html, body {
+        background-color: #111111 !important;
+        color: #ececec !important;
+      }
+
+      d-title, d-byline, d-article, d-appendix, d-bibliography, d-footnote-list {
+        background-color: #111111 !important;
+        color: #ececec !important;
+      }
+
+      d-title h1 {
+        color: #ffffff !important;
+      }
+      d-title p {
+        color: rgba(255, 255, 255, 0.75) !important;
+      }
+
+      d-byline h3 {
+        color: rgba(255, 255, 255, 0.45) !important;
+      }
+      d-byline, d-byline p, d-byline a, d-byline .author, d-byline .affiliation {
+        color: rgba(255, 255, 255, 0.85) !important;
+      }
+
+      d-article h1, d-article h2, d-article h3, d-article h4 {
+        color: #ffffff !important;
+        border-bottom-color: #282828 !important;
+      }
+
+      d-article p, d-article li {
+        color: rgba(255, 255, 255, 0.88) !important;
+      }
+
+      d-article strong, d-article b {
+        color: #ffffff !important;
+      }
+
+      d-article em, d-article i {
+        color: rgba(255, 255, 255, 0.95) !important;
+      }
+
+      d-article blockquote {
+        border-left-color: #333333 !important;
+        color: rgba(255, 255, 255, 0.7) !important;
+      }
+
+      d-article aside {
+        color: rgba(255, 255, 255, 0.55) !important;
+      }
+
+      /* KaTeX formulas: display, inline, symbols, accents, svgs */
+      .katex, .katex *, .katex-display, .katex-display *, .math-display, .math-display * {
+        color: #ececec !important;
+        border-color: #ececec !important;
+      }
+      .katex svg path, .katex svg line {
+        fill: #ececec !important;
+        stroke: #ececec !important;
+      }
+
+      /* Figcaptions, figures, and descriptions */
+      figcaption,
+      d-figure figcaption,
+      figure figcaption,
+      .figcaption,
+      figcaption *,
+      d-figure figcaption * {
+        color: rgba(255, 255, 255, 0.75) !important;
+      }
+
+      figcaption strong,
+      figcaption b,
+      d-figure figcaption strong,
+      d-figure figcaption b {
+        color: #ffffff !important;
+      }
+
+      figcaption em,
+      d-figure figcaption em {
+        color: rgba(255, 255, 255, 0.9) !important;
+      }
+
+      /* Citations and hover boxes */
+      d-cite, .citation, .citation-number {
+        color: #74c0fc !important;
+      }
+
+      /* Navigation */
+      .top-nav {
+        border-bottom-color: #282828 !important;
+      }
+      .top-nav a {
+        color: #8c8c8c !important;
+      }
+      .top-nav a:hover {
+        color: #ffffff !important;
+      }
+
+      /* Algorithm box */
+      .algo-box {
+        background: #181818 !important;
+        border-color: #282828 !important;
+        color: #ececec !important;
+      }
+      .algo-box strong {
+        color: #ffffff !important;
+      }
+
+      /* Appendix and Bibliography */
+      d-appendix {
+        border-top: 1px solid #282828 !important;
+        color: rgba(255, 255, 255, 0.65) !important;
+      }
+      d-appendix h3 {
+        color: rgba(255, 255, 255, 0.85) !important;
+      }
+      d-appendix a {
+        color: #74c0fc !important;
+      }
+
+      d-bibliography {
+        color: rgba(255, 255, 255, 0.8) !important;
+      }
+      d-bibliography h3 {
+        color: rgba(255, 255, 255, 0.95) !important;
+      }
+      d-bibliography li, d-bibliography p, d-bibliography a {
+        color: rgba(255, 255, 255, 0.75) !important;
+      }
+      d-citation-list, d-citation-list * {
+        color: rgba(255, 255, 255, 0.8) !important;
+      }
+    }
+
+    /* Interactive Showcase Container */
+    .simulation-widget {
+      background-color: #0f0f1a;
+      border: 1px solid #22223a;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin: 1.5rem 0;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+    }
+
+    .widget-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      font-family: var(--font-mono);
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .stat-badge {
+      padding: 0.35rem 0.75rem;
+      border-radius: 5px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .stat-badge.sm {
+      background: rgba(255, 107, 107, 0.12);
+      border: 1px solid rgba(255, 107, 107, 0.35);
+      color: #ff6b6b;
+    }
+    .stat-badge.chol {
+      background: rgba(81, 207, 102, 0.12);
+      border: 1px solid rgba(81, 207, 102, 0.35);
+      color: #51cf66;
+    }
+    .stat-badge.time {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .plots-row {
+      display: flex;
+      gap: 1rem;
+      position: relative;
+    }
+    @media (max-width: 800px) {
+      .plots-row { flex-direction: column; }
+    }
+
+    .plot-cell {
+      flex: 1;
+      height: 440px;
+      background: #16162a;
+      border-radius: 6px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .plot-label {
+      position: absolute;
+      top: 10px;
+      left: 14px;
+      z-index: 10;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      pointer-events: none;
+      letter-spacing: 0.02em;
+    }
+
+    .controls-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-top: 1.25rem;
+      padding-top: 1rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      font-family: var(--font-mono);
+    }
+
+    .btn-play {
+      background: #4dabf7;
+      color: #0f0f1a;
+      border: none;
+      border-radius: 4px;
+      padding: 0.45rem 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: background 0.15s ease;
+    }
+    .btn-play:hover {
+      background: #74c0fc;
+    }
+
+    .slider-track {
+      flex: 1;
+      accent-color: #4dabf7;
+      cursor: pointer;
+    }
+
+    .algo-box {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1.25rem;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      line-height: 1.6;
+      margin: 1.5rem 0;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="top-nav">
+    <a href="/en/">← finn-hertsch.de</a>
+    <a href="/research/kairos/?lang=de" class="lang-toggle">[DE] Deutsch</a>
+  </div>
+
+  <d-front-matter>
+    <script type="text/json">
+    {
+      "title": "Kairos: Numerically Robust News Recommendation",
+      "description": "Preserving positive definiteness and preventing numerical collapse in streaming contextual bandits via Cholesky factor updates and Matryoshka embeddings.",
+      "authors": [
+        {
+          "author": "Finn Hertsch",
+          "authorURL": "https://finn-hertsch.de/en/",
+          "affiliations": [
+            {
+              "name": "DHBW Ravensburg",
+              "url": "https://www.ravensburg.dhbw.de"
+            }
+          ]
+        }
+      ],
+      "published": "2026-07-30",
+      "journal": "SKILL 2026 / arXiv:2607.26832",
+      "doi": "10.48550/arXiv.2607.26832"
+    }
+    </script>
+  </d-front-matter>
+
+  <d-title>
+    <h1>Kairos: Numerically Robust News Recommendation</h1>
+    <p>Guaranteed Positive Definiteness and Real-Time Scaling under Item Cold-Start via Cholesky LinUCB and Matryoshka Embeddings</p>
+  </d-title>
+
+  <d-byline></d-byline>
+
+  <d-article>
+    <p>
+      In dynamic content spaces like regional news publishing, recommendation systems face a structural paradox:
+      articles display an extremely short Time-to-Live (TTL &lt; 48h) while catalog throughput remains modest.
+      Classical collaborative filtering algorithms <d-cite key="he2017neural"></d-cite> collapse because the interaction density
+      required to train neural embeddings rarely materializes before the content decays.
+    </p>
+
+    <p>
+      <strong>Project Kairos</strong> addresses this scarcity by transitioning from passive data-driven learning
+      to active online bandit optimization via Linear Upper Confidence Bound (LinUCB) <d-cite key="li2010contextual"></d-cite>.
+      However, continuous deployment of LinUCB in production requires unyielding numerical integrity.
+      Here, we examine why conventional implementations relying on recursive Sherman-Morrison matrix inversions break down,
+      and how direct rank-1 updates of Cholesky factors structurally preserve model geometry.
+    </p>
+
+    <h2>1. The Item Cold-Start Paradox</h2>
+    <p>
+      Empirical evaluations on news interaction datasets confirm that the majority of engagement occurs within hours of publication.
+      Afterwards, article utility decays exponentially <d-cite key="raza2022news"></d-cite>.
+      In regional corpora with shallow article pools ($N \approx 350$ items per 48-hour window),
+      recommendation models cannot rely on large collaborative interaction graphs.
+    </p>
+
+    <p>
+      LinUCB resolves this by modeling user payoffs as a linear combination of contextual features $x_{t,a} \in \mathbb{R}^d$
+      and estimated user preference vectors $\hat{\theta}_t \in \mathbb{R}^d$:
+    </p>
+
+    <div class="math-display">
+      $$p_{t,a} = \hat{\theta}_t^\top x_{t,a} + \alpha \sqrt{x_{t,a}^\top A_t^{-1} x_{t,a}}$$
+    </div>
+
+    <p>
+      where $\alpha > 0$ balances exploitation with epistemic exploration, and $A_t \in \mathbb{R}^{d \times d}$ denotes the cumulative
+      feature covariance matrix with ridge parameter $I_d$:
+    </p>
+
+    <div class="math-display">
+      $$A_t = I_d + \sum_{\tau=1}^{t-1} x_{\tau, a_\tau} x_{\tau, a_\tau}^\top$$
+    </div>
+
+    <h2>2. The Geometry of Uncertainty</h2>
+    <p>
+      Geometrically, the quadratic term under the radical, $x_{t,a}^\top A_t^{-1} x_{t,a}$, represents the weighted Mahalanobis distance
+      with respect to the precision matrix $A_t^{-1}$. It defines a <strong>confidence ellipsoid</strong> in the $d$-dimensional parameter space:
+    </p>
+
+    <div class="math-display">
+      $$\mathcal{E}_t = \left\{ \theta \in \mathbb{R}^d \mid (\theta - \hat{\theta}_t)^\top A_t (\theta - \hat{\theta}_t) \le \alpha^2 \right\}$$
+    </div>
+
+    <p>
+      Exploration is non-isotropic. Along feature directions that have received substantial interaction (high data coverage),
+      the ellipsoid contracts quickly, reducing uncertainty.
+      Conversely, along under-explored directions (representing novel or cold-start topics), the ellipsoid remains stretched out,
+      yielding a large exploration bonus that directly counteracts popularity bias.
+    </p>
+
+    <!-- SHOWCASE: INTERACTIVE 3D SIMULATION -->
+    <h2>3. The Showcase: Numerical Divergence vs. Cholesky Stability</h2>
+    <p>
+      To sustain continuous recommendation streams, LinUCB must update $A_t^{-1}$ iteratively as each new article interaction $x_t$ arrives.
+      Conventional implementations employ the <em>Sherman-Morrison formula</em>:
+    </p>
+
+    <div class="math-display">
+      $$A_{t+1}^{-1} = A_t^{-1} - \frac{A_t^{-1} x_t x_t^\top A_t^{-1}}{1 + x_t^\top A_t^{-1} x_t}$$
+    </div>
+
+    <p>
+      Under floating-point arithmetic, repeatedly subtracting outer products induces catastrophic cancellation.
+      The condition number $\kappa(A_t^{-1})$ diverges, asymmetry creeps in, and positive definiteness is irreparably destroyed.
+    </p>
+
+    <p>
+      Below, we simulate <strong>1,000 streaming interactions</strong> on real 128-dimensional Matryoshka embeddings extracted from the Tagesschau API.
+      Both models are initialized identically ($A_0 = 0.1 I_{128} \implies A_0^{-1} = 10 I_{128}$).
+      We project the uncertainty ellipsoid into 3 representative axes: PC1 (dominant category), PC2, and PC120 (cold-start topic):
+    </p>
+
+    <d-figure class="l-screen-width">
+      <div class="simulation-widget">
+        <div class="widget-header">
+          <div id="stat-sm" class="stat-badge sm">κ(A⁻¹) = 3.3</div>
+          <div id="stat-time" class="stat-badge time">Interaction t = 1 / 1000</div>
+          <div id="stat-chol" class="stat-badge chol">κ(L) = 1.11 (stable)</div>
+        </div>
+
+        <div class="plots-row">
+          <div class="plot-cell">
+            <span class="plot-label" style="color: #ff6b6b;">Sherman-Morrison (Float32)</span>
+            <div id="plot-sm" style="width: 100%; height: 100%;"></div>
+          </div>
+          <div class="plot-cell">
+            <span class="plot-label" style="color: #51cf66;">Kairos Cholesky (Float64)</span>
+            <div id="plot-chol" style="width: 100%; height: 100%;"></div>
+          </div>
+        </div>
+
+        <div class="controls-row">
+          <button id="btn-play-pause" class="btn-play">▶ Play</button>
+          <input type="range" id="time-slider" class="slider-track" min="0" max="999" value="0">
+        </div>
+      </div>
+      <figcaption>
+        <strong>Interactive 3D Confidence Ellipsoid Evolution.</strong>
+        Drag the slider or press Space to stream 1,000 news interactions.
+        <em>Left:</em> Sherman-Morrison recursive inversion rapidly ill-conditions ($\kappa \to 1400+$), warping axes along unobserved directions.
+        <em>Right:</em> Kairos Cholesky updates operate directly in factor space, ensuring $\kappa(L) \le 13$ and preserving strict SPD geometry.
+      </figcaption>
+    </d-figure>
+
+    <h2>4. The Solution: Rank-1 Updates in Cholesky Factor Space</h2>
+    <p>
+      Rather than storing and inverting $A_t$, Kairos maintains the lower-triangular Cholesky factor $L_t \in \mathbb{R}^{d \times d}$ such that:
+    </p>
+
+    <div class="math-display">
+      $$A_t = L_t L_t^\top$$
+    </div>
+
+    <p>
+      Upon observing action context $x \in \mathbb{R}^d$ and reward $r \in \{0, 1\}$, the factorization is updated directly via rank-1 modification <d-cite key="gill1974methods"></d-cite>:
+    </p>
+
+    <div class="algo-box">
+      <strong>Algorithm 1: Incremental Cholesky Ranking Update</strong><br>
+      1: Normalize context vector: $x \leftarrow x / \|x\|_2$<br>
+      2: Apply decay discount: $L_t \leftarrow \sqrt{\gamma} \cdot L_t$<br>
+      3: <strong>if</strong> $r > 0$ <strong>then</strong><br>
+      4: &emsp; $L_{t+1} \leftarrow \text{cholupdate}(L_t, x)$ &emsp; $\rhd \; L_{t+1} L_{t+1}^\top = L_t L_t^\top + x x^\top$<br>
+      5: <strong>end if</strong><br>
+      6: Forward substitution: $L_{t+1} y = x \implies y \in \mathbb{R}^d$<br>
+      7: Uncertainty evaluation: $\sigma^2 = y^\top y = x^\top A_{t+1}^{-1} x$<br>
+      8: <strong>return</strong> $L_{t+1}, \sigma^2$
+    </div>
+
+    <p>
+      Operating in triangular factor space yields a decisive mathematical property <d-cite key="golub2013matrix"></d-cite>:
+      the condition number satisfies $\kappa(L_t) = \sqrt{\kappa(A_t)}$.
+      Working with square-root factors effectively squares precision and structurally precludes negative eigenvalues.
+    </p>
+
+    <h2>5. Scaling Up: Matryoshka Representation Learning</h2>
+    <p>
+      Numerical stability ensures system reliability, but real-time news serving requires sub-millisecond inference latency.
+      Kairos combines Cholesky LinUCB with <em>Matryoshka Representation Learning (MRL)</em> <d-cite key="kusupati2022matryoshka"></d-cite>
+      via Nomic Embed <d-cite key="nussbaum2024nomic"></d-cite>.
+    </p>
+
+    <p>
+      By truncating the 768-dimensional embedding vector to the nested $m = 128$ subspace, Maximum Inner Product Search (MIPS)
+      achieves a <strong>4.85-fold speedup</strong> (0.069 ms vs. 0.337 ms per 100 candidates)
+      while retaining over 95% of total semantic variance and 96.4% pairwise cosine similarity precision.
+    </p>
+  </d-article>
+
+  <d-appendix>
+    <h3>Acknowledgments</h3>
+    <p>
+      This work was conducted at DHBW Ravensburg (School of Business, Data Science &amp; AI).
+      Experimental validation relies on real-time news embeddings sourced from the Tagesschau API.
+      Implementation in Julia 1.10; source code and benchmark scripts are available on
+      <a href="https://github.com/F1nnSBK/Project-Kairos">GitHub</a>.
+    </p>
+
+    <h3>Author Contributions</h3>
+    <p>
+      <strong>Finn Hertsch:</strong> Conceptualization, mathematical formulation of Cholesky LinUCB, MRL integration, empirical evaluation, and software architecture.
+    </p>
+  </d-appendix>
+
+  <d-bibliography>
+    <script type="text/bibtex">
+@article{he2017neural,
+  title={Neural collaborative filtering},
+  author={He, Xiangnan and Liao, Lizi and Zhang, Hanwang and Nie, Liqiang and Hu, Xia and Chua, Tat-Seng},
+  booktitle={Proceedings of the 26th International Conference on World Wide Web},
+  pages={173--182},
+  year={2017},
+  doi={10.1145/3038912.3052569}
+}
+
+@article{li2010contextual,
+  title={A contextual-bandit approach to personalized news article recommendation},
+  author={Li, Lihong and Chu, Wei and Langford, John and Schapire, Robert E},
+  booktitle={Proceedings of the 19th International Conference on World Wide Web},
+  pages={661--670},
+  year={2010},
+  doi={10.1145/1772690.1772758}
+}
+
+@article{raza2022news,
+  title={News recommender system: a review of recent progress, challenges, and opportunities},
+  author={Raza, Shaina and Ding, Chen},
+  journal={Artificial Intelligence Review},
+  volume={55},
+  number={1},
+  pages={749--800},
+  year={2022},
+  doi={10.1007/s10462-021-10043-x}
+}
+
+@article{gill1974methods,
+  title={Methods for modifying matrix factorizations},
+  author={Gill, Philip E and Golub, Gene H and Murray, Walter and Saunders, Michael A},
+  journal={Mathematics of Computation},
+  volume={28},
+  number={126},
+  pages={505--535},
+  year={1974},
+  doi={10.1090/S0025-5718-1974-0343558-6}
+}
+
+@book{golub2013matrix,
+  title={Matrix Computations},
+  author={Golub, Gene H and Van Loan, Charles F},
+  year={2013},
+  publisher={Johns Hopkins University Press}
+}
+
+@article{kusupati2022matryoshka,
+  title={Matryoshka representation learning},
+  author={Kusupati, Aditya and Bhatt, Gantavya and Ansuini, Alessio and Ramanujan, Vivek and Shamis, Galen and Krishna, Ranjay and Jain, Prateek and Shen, Sham and Farhadi, Ali},
+  journal={Advances in Neural Information Processing Systems},
+  volume={35},
+  pages={30233--30249},
+  year={2022}
+}
+
+@article{nussbaum2024nomic,
+  title={Nomic Embed: Training a Reproducible Long Context Text Embedder},
+  author={Nussbaum, Zach and Morris, John X and Duderstadt, Brandon and Mulyar, Andriy},
+  journal={arXiv preprint arXiv:2402.01613},
+  year={2024},
+  doi={10.48550/arXiv.2402.01613}
+}
+    </script>
+  </d-bibliography>
+
+  <!-- KaTeX Auto-Render & Citation Support -->
+  <script>
+    function runMathAndCitationFixes() {
+      // 1. KaTeX Math Auto-Rendering
+      if (window.renderMathInElement) {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\\(', right: '\\)', display: false },
+            { left: '\\[', right: '\\]', display: true }
+          ],
+          throwOnError: false,
+          ignoredTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+        });
+      } else {
+        setTimeout(runMathAndCitationFixes, 40);
+        return;
+      }
+
+      // 2. Citation Numbering and Color Theme Patching
+      const citationKeys = [
+        'he2017neural',
+        'li2010contextual',
+        'raza2022news',
+        'gill1974methods',
+        'golub2013matrix',
+        'kusupati2022matryoshka',
+        'nussbaum2024nomic'
+      ];
+
+      document.querySelectorAll('d-cite').forEach(cite => {
+        const key = cite.getAttribute('key');
+        const idx = citationKeys.indexOf(key);
+        const citeNum = idx >= 0 ? idx + 1 : 1;
+
+        if (cite.shadowRoot) {
+          if (!cite.shadowRoot.querySelector('style.cite-theme-patch')) {
+            const s = document.createElement('style');
+            s.className = 'cite-theme-patch';
+            s.textContent = `
+              .citation {
+                color: #4dabf7 !important;
+                cursor: pointer;
+              }
+              .citation-number {
+                color: #4dabf7 !important;
+                font-weight: 500;
+              }
+              @media (prefers-color-scheme: light) {
+                .citation, .citation-number {
+                  color: #1971c2 !important;
+                }
+              }
+            `;
+            cite.shadowRoot.appendChild(s);
+          }
+
+          const innerSpan = cite.shadowRoot.querySelector('.citation-number');
+          if (innerSpan && (!innerSpan.textContent || innerSpan.textContent.trim() === '[]' || innerSpan.textContent.trim() === '')) {
+            innerSpan.textContent = '[' + citeNum + ']';
+          }
+        } else {
+          if (!cite.textContent || cite.textContent.trim() === '' || cite.textContent.trim() === '[]') {
+            cite.textContent = '[' + citeNum + ']';
+          }
+        }
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      runMathAndCitationFixes();
+      setTimeout(runMathAndCitationFixes, 250);
+      setTimeout(runMathAndCitationFixes, 800);
+    });
+  </script>
+
+  <!-- Plotly Interactive Logic -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      fetch('/research/kairos/kairos_data.json')
+        .then(res => res.json())
+        .then(frames => {
+          const slider = document.getElementById('time-slider');
+          const btnPlay = document.getElementById('btn-play-pause');
+          const statSm = document.getElementById('stat-sm');
+          const statChol = document.getElementById('stat-chol');
+          const statTime = document.getElementById('stat-time');
+
+          let isPlaying = false;
+          let playInterval = null;
+
+          function generateSurface(r, v, n = 32) {
+            let x = [], y = [], z = [];
+            for (let i = 0; i < n; i++) {
+              let theta = (i / (n - 1)) * 2 * Math.PI;
+              x[i] = []; y[i] = []; z[i] = [];
+              for (let j = 0; j < n; j++) {
+                let phi = (j / (n - 1)) * Math.PI;
+                let sx = Math.cos(theta) * Math.sin(phi);
+                let sy = Math.sin(theta) * Math.sin(phi);
+                let sz = Math.cos(phi);
+
+                let rx = r[0] * sx, ry = r[1] * sy, rz = r[2] * sz;
+
+                x[i][j] = v[0][0]*rx + v[0][1]*ry + v[0][2]*rz;
+                y[i][j] = v[1][0]*rx + v[1][1]*ry + v[1][2]*rz;
+                z[i][j] = v[2][0]*rx + v[2][1]*ry + v[2][2]*rz;
+              }
+            }
+            return { x, y, z };
+          }
+
+          const layoutBase = {
+            margin: { l: 0, r: 0, b: 0, t: 0 },
+            paper_bgcolor: '#16162a',
+            scene: {
+              xaxis: { range: [-3.5, 3.5], visible: false, showgrid: false },
+              yaxis: { range: [-3.5, 3.5], visible: false, showgrid: false },
+              zaxis: { range: [-3.5, 3.5], visible: false, showgrid: false },
+              camera: { eye: { x: 1.4, y: 1.4, z: 1.1 } },
+              aspectmode: 'cube'
+            }
+          };
+
+          function renderFrame(t) {
+            const frame = frames[t];
+            statTime.innerText = `Interaction t = ${t + 1} / 1000`;
+
+            if (frame.valid) {
+              statSm.innerText = `κ(A⁻¹) = ${frame.k_sm.toFixed(1)}`;
+              statSm.style.color = '#ff6b6b';
+            } else {
+              statSm.innerText = `κ(A⁻¹) → ∞ COLLAPSE`;
+              statSm.style.color = '#ff8787';
+            }
+
+            statChol.innerText = `κ(L) = ${frame.k_chol.toFixed(2)} (stable)`;
+
+            const smSurf = generateSurface(frame.sm_r, frame.sm_v);
+            const chSurf = generateSurface(frame.ch_r, frame.ch_v);
+
+            Plotly.react('plot-sm', [{
+              type: 'surface',
+              x: smSurf.x, y: smSurf.y, z: smSurf.z,
+              colorscale: [[0, '#4a0e17'], [1, '#ff6b6b']],
+              showscale: false,
+              lighting: { ambient: 0.7, diffuse: 0.8, specular: 0.2 }
+            }], layoutBase, { displayModeBar: false, responsive: true });
+
+            Plotly.react('plot-chol', [{
+              type: 'surface',
+              x: chSurf.x, y: chSurf.y, z: chSurf.z,
+              colorscale: [[0, '#0b3d1b'], [1, '#51cf66']],
+              showscale: false,
+              lighting: { ambient: 0.7, diffuse: 0.8, specular: 0.2 }
+            }], layoutBase, { displayModeBar: false, responsive: true });
+          }
+
+          slider.addEventListener('input', (e) => {
+            renderFrame(parseInt(e.target.value));
+          });
+
+          function togglePlay() {
+            isPlaying = !isPlaying;
+            btnPlay.innerText = isPlaying ? '❚❚ Pause' : '▶ Play';
+
+            if (isPlaying) {
+              playInterval = setInterval(() => {
+                let cur = parseInt(slider.value);
+                if (cur < frames.length - 1) {
+                  slider.value = cur + 1;
+                  renderFrame(cur + 1);
+                } else {
+                  togglePlay();
+                }
+              }, 120); // 120 ms per step => 2-minute total runtime
+            } else {
+              clearInterval(playInterval);
+            }
+          }
+
+          btnPlay.addEventListener('click', togglePlay);
+
+          window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && e.target.tagName !== 'INPUT') {
+              e.preventDefault();
+              togglePlay();
+            }
+          });
+
+          // Initial render
+          renderFrame(0);
+        })
+        .catch(err => console.error("Error loading kairos_data.json:", err));
+    });
+  </script>
+</body>
+</html>
