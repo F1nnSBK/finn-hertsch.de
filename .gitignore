@@ -5,6 +5,8 @@
 .nitro
 .cache
 dist
+.astro
+
 
 # Node dependencies
 node_modules
@@ -22,4 +24,3 @@ logs
 .env
 .env.*
 !.env.example
-.astro
