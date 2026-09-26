@@ -534,8 +534,8 @@
   <d-front-matter>
     <script type="text/json">
     {
-      "title": "Kairos: Numerisch robuste Nachrichten-Empfehlung",
-      "description": "Garantierte positive Definitheit und Echtzeit-Skalierung unter Item-Cold-Start via Cholesky LinUCB und Matryoshka-Embeddings",
+      "title": "Kairos: Numerically Robust News Recommendation under Item Cold-Start via Cholesky-based LinUCB",
+      "description": "Strukturelle Absicherung der positiven Definitheit und Echtzeit-Skalierung unter Item-Cold-Start via Cholesky LinUCB und Matryoshka-Embeddings",
       "authors": [
         {
           "author": "Finn Hertsch",
@@ -556,8 +556,8 @@
   </d-front-matter>
 
   <d-title>
-    <h1>Kairos: Numerisch robuste Nachrichten-Empfehlung</h1>
-    <p>Garantierte positive Definitheit und Echtzeit-Skalierung unter Item-Cold-Start via Cholesky LinUCB und Matryoshka-Embeddings</p>
+    <h1>Kairos: Numerically Robust News Recommendation</h1>
+    <p>Numerisch robuste Nachrichten-Empfehlung unter Item-Cold-Start via Cholesky-basiertem LinUCB und Matryoshka-Embeddings</p>
   </d-title>
 
   <d-byline></d-byline>
@@ -670,7 +670,7 @@
         <strong>Evolution der 3D-Konfidenzellipsoide.</strong>
         Bewege den Slider oder drücke die Leertaste, um 1.000 Interaktionen abzuspielen.
         <em>Links:</em> Die rekursive Sherman-Morrison-Inversion wird rasch schlecht konditioniert ($\kappa \to 1400+$) und verzieht die Achsen entlang unbeobachteter Richtungen.
-        <em>Rechts:</em> Das Cholesky-Update operiert direkt im Raum der Dreiecksfaktoren, hält $\kappa(L) \le 13$ und garantiert strukturell die SPD-Eigenschaft.
+        <em>Rechts:</em> Das Cholesky-Update operiert direkt im Raum der Dreiecksfaktoren, hält $\kappa(L) \le 13$ und sichert strukturell die SPD-Eigenschaft.
       </figcaption>
     </d-figure>
 
@@ -707,7 +707,7 @@
 
     <h2>5. Skalierung: Matryoshka Representation Learning</h2>
     <p>
-      Numerische Robustheit garantiert Betriebssicherheit; für Live-Nachrichtensysteme ist jedoch sub-millisekunden Inferenzlatenz zwingend.
+      Numerische Stabilität sichert die Systemzuverlässigkeit; für Live-Nachrichtensysteme ist jedoch sub-millisekunden Inferenzlatenz zwingend.
       Kairos koppelt Cholesky LinUCB mit <em>Matryoshka Representation Learning (MRL)</em> <d-cite key="kusupati2022matryoshka"></d-cite>
       über Nomic Embed <d-cite key="nussbaum2024nomic"></d-cite>.
     </p>
