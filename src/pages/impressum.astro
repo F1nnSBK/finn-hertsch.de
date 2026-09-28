@@ -11,13 +11,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   <div class="content">
     <p class="muted">Angaben gemäß § 5 TDDG</p>
     <div id="contact-container">
-      <p id="scramble-text" class="mono text-sm muted" style="white-space: pre-wrap; line-height: 1.8;">Fni nHtercsh
-Pfro.-Ailos-Knöplfer Wge 8
-82839 Wngane mi Algläu
-
-E-Mial: mial[at]ifnn-hercths[dot]de</p>
+      <p id="scramble-text" class="mono text-sm muted" style="white-space: pre-wrap; line-height: 1.8;" set:text={`Svaa Uregfpu\nCebs.-Nybvf-Xaöcsyre Jrt 3\n33784 Jnatra vz Nyytäh\n\nR-Znvy: s.uregfpu@tzk.qr`} />
       
-      <a href="#" id="unscramble-btn" class="mono text-sm" style="display: inline-block; margin-top: 1rem;">[unscramble]</a>
+      <a href="#" id="unscramble-btn" class="mono text-sm" style="display: inline-block; margin-top: 1rem; color: var(--fg-muted);">[unscramble]</a>
     </div>
 
     <p class="muted text-sm" style="margin-top: 3rem;">
@@ -28,42 +24,82 @@ E-Mial: mial[at]ifnn-hercths[dot]de</p>
 </BaseLayout>
 
 <script is:inline>
+  // =====================================================================
+  // GEOMETRIC DEEP LEARNING DECRYPTOR
+  // WebAssembly & Stiefel Manifold Projections
+  // =====================================================================
   var btn = document.getElementById('unscramble-btn');
   var textEl = document.getElementById('scramble-text');
-  
-  // UTF-8 Base64 Encoded Text
-  // Decodiert zu: 
-  // Finn Hertsch
-  // Prof.-Alois-Knöpfler Weg 8
-  // 88239 Wangen im Allgäu
-  //
-  // E-Mail: f.hertsch@gmx.de
-  var realTextB64 = "RmlubiBIZXJ0c2NoClByb2YuLUFsb2lzLUtuw7ZwZmxlciBXZWcgOAo4ODIzOSBXYW5nZW4gaW0gQWxsZ8OkdQoKRS1NYWlsOiBmLmhlcnRzY2hAZ214LmRl";
 
-  btn.addEventListener('click', function(e) {
-    e.preventDefault();
-    // Sauberes UTF-8 Decode
-    var realText = decodeURIComponent(escape(atob(realTextB64)));
-    var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%&*';
-    var iterations = 0;
-    
-    var interval = setInterval(function() {
-      textEl.innerText = realText.split('').map(function(char, index) {
-        if (char === '\n' || char === ' ') return char;
-        if (index < iterations) return char;
-        return chars[Math.floor(Math.random() * chars.length)];
-      }).join('');
+  if (btn && textEl) {
+    btn.addEventListener('click', async function(e) {
+      e.preventDefault();
       
-      iterations += 0.5; // Steuert die Geschwindigkeit des "Dekodierens"
+      const scrambledText = textEl.innerText;
       
-      if (iterations >= realText.length) {
-        clearInterval(interval);
-        textEl.innerText = realText;
-        textEl.style.color = 'var(--fg)';
-        btn.style.display = 'none';
+      // 1. Initialize WebAssembly runtime
+      console.log("%c[WASM] Bootstrapping WebAssembly VM...", "color: #ff9900; font-family: monospace;");
+      const dummyWasm = new Uint8Array([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00, 0x01, 0x04, 0x01, 0x60, 0x00, 0x00, 0x03, 0x02, 0x01, 0x00, 0x07, 0x0a, 0x01, 0x06, 0x65, 0x6e, 0x67, 0x69, 0x6e, 0x65, 0x00, 0x00, 0x0a, 0x04, 0x01, 0x02, 0x00, 0x0b]);
+      try {
+        await WebAssembly.instantiate(dummyWasm);
+        console.log("%c[WASM] Kernel loaded. Tensor cores ready.", "color: #00ff00; font-family: monospace;");
+      } catch (e) {
+        console.error(e);
       }
-    }, 25);
-  });
+
+      console.log("%c[GEO] Allocating 1-bit prefix Matryoshka embeddings...", "color: #00ccff; font-family: monospace;");
+      
+      // 2. Embed string into pseudo-Hilbert space (Float64Array)
+      const latentSpace = new Float64Array(scrambledText.length);
+      for(let i = 0; i < scrambledText.length; i++) {
+        latentSpace[i] = scrambledText.charCodeAt(i);
+      }
+
+      // 3. Geodesic traversal on the SO(n) Manifold
+      console.log("%c[GEO] Traversing Stiefel Manifold via geodesic ROT13 projections...", "color: #00ccff; font-family: monospace;");
+      
+      let iterations = 0;
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%&*';
+      
+      const interval = setInterval(function() {
+        textEl.innerText = Array.from(latentSpace).map(function(val, index) {
+          let orig = latentSpace[index];
+          if (orig === 10) return '\n';
+          if (index < Math.floor(iterations)) {
+            // Geodesic projection completed for this dimension
+            let c = orig;
+            if (c >= 65 && c <= 90) return String.fromCharCode(((c - 65 + 13) % 26) + 65);
+            if (c >= 97 && c <= 122) return String.fromCharCode(((c - 97 + 13) % 26) + 97);
+            if (c >= 48 && c <= 57) return String.fromCharCode(((c - 48 + 5) % 10) + 48);
+            return String.fromCharCode(c);
+          }
+          if (orig === 32) return ' ';
+          // Stochastic character sampling
+          return chars[Math.floor(Math.random() * chars.length)];
+        }).join('');
+        
+        iterations += 0.8; // Step size
+        
+        if (iterations >= latentSpace.length) {
+          clearInterval(interval);
+          // Ensure the final state is perfectly projected
+          const finalStr = Array.from(latentSpace).map(function(c) {
+            if (c >= 65 && c <= 90) return String.fromCharCode(((c - 65 + 13) % 26) + 65);
+            if (c >= 97 && c <= 122) return String.fromCharCode(((c - 97 + 13) % 26) + 97);
+            if (c >= 48 && c <= 57) return String.fromCharCode(((c - 48 + 5) % 10) + 48);
+            return String.fromCharCode(c);
+          }).join('');
+          textEl.innerHTML = finalStr.replace(
+            'f.hertsch@gmx.de',
+            '<a href="mailto:f.hertsch@gmx.de" style="color: inherit; text-decoration: underline;">f.hertsch@gmx.de</a>'
+          );
+          textEl.style.color = 'var(--fg)';
+          btn.style.display = 'none';
+          console.log("%c[SYS] Projection stabilized. Real-world target mapped.", "color: #ff00ff; font-family: monospace;");
+        }
+      }, 25);
+    });
+  }
 </script>
 
 <style>
