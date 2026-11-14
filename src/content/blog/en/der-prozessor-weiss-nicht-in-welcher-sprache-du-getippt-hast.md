@@ -24,7 +24,7 @@ Consider the physical access latencies of a modern x86 or ARM64 core (e.g., Appl
 | **L1 Data Cache** | ~0.8 – 1.2 ns | $1\times$ |
 | **L2 Cache** | ~3.0 – 4.5 ns | $4\times$ |
 | **L3 Cache (Shared)** | ~10 – 15 ns | $12\times$ |
-| **Main RAM (DDR5)** | ~55 – 85 ns | $60\times \text{--} 80\times$ |
+| **Main RAM (DDR5)** | ~55 – 85 ns | $60\times$ – $80\times$ |
 
 A single cache miss outweighs hundreds of arithmetic instructions. When designing for low latency, we therefore optimize not instruction counts, but **data locality and cache-line density**.
 

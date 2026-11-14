@@ -24,7 +24,7 @@ Betrachten wir die physischen Latenzen eines modernen x86- oder ARM64-Kerns (z. 
 | **L1 Data Cache** | ~0.8 – 1.2 ns | $1\times$ |
 | **L2 Cache** | ~3.0 – 4.5 ns | $4\times$ |
 | **L3 Cache (Shared)** | ~10 – 15 ns | $12\times$ |
-| **Main RAM (DDR5)** | ~55 – 85 ns | $60\times – 80\times$ |
+| **Main RAM (DDR5)** | ~55 – 85 ns | $60\times$ – $80\times$ |
 
 Ein einziger Cache-Miss wiegt schwerer als hunderte arithmetische Instruktionen. Wenn wir Latenzkritikalität anstreben, optimieren wir daher nicht Instruktionszähler, sondern **Datenlokalität und Cache-Line-Dichte**.
 
