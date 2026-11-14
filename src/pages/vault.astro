@@ -9,10 +9,10 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   </div>
 
   <header class="page-header">
-    <div class="mono text-sm muted">[VAULT · SCRYPT + HMAC-SHA256]</div>
+    <div class="mono text-sm muted">[VAULT]</div>
     <h1>Entwürfe &amp; Freigabe</h1>
     <p class="muted">
-      Unveröffentlichte Artikel sind vollständig aus <code>/blog</code>, <code>sitemap-0.xml</code> und <code>/llms.txt</code> entfernt, bis sie hier freigegeben werden.
+      Geschützter Bereich für unveröffentlichte Entwürfe.
     </p>
   </header>
 
@@ -22,7 +22,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
   <section id="vault-login-view" class="vault-card" hidden>
     <form id="vault-login-form" autocomplete="on">
-      <label for="vault-password" class="field-label mono">Passwort zur Entschlüsselung der Session</label>
+      <label for="vault-password" class="field-label mono">Passwort</label>
       <div class="password-row">
         <input
           id="vault-password"
@@ -230,8 +230,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
       envIndicator.textContent =
         data.environment === 'vercel'
-          ? 'Modus: Vercel Production (GitHub Commit Deploy)'
-          : 'Modus: Lokal (Sofortige Datei-Synchronisation)';
+          ? 'Modus: Produktion'
+          : 'Modus: Lokal';
       countsEl.textContent = draftCount + ' gesperrt · ' + liveCount + ' öffentlich';
 
       postListEl.innerHTML = '';
@@ -269,9 +269,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         if (payload.mode === 'github') {
           showBanner(
             (targetPublished ? 'Veröffentlichung' : 'Sperrung') +
-              ' per GitHub-Commit (' +
-              (payload.commitSha || 'HEAD') +
-              ') ausgelöst – Vercel baut die Seite in ca. 25 Sekunden neu.',
+              ' angestoßen (' +
+              (payload.commitSha || 'ok') +
+              ') – Seite aktualisiert sich in ca. 25 Sekunden.',
             'success'
           );
         } else {

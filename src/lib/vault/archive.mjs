@@ -91,9 +91,8 @@ export function openEncryptedVaultBundle() {
   }
   const key = getEnvValue('VAULT_CONTENT_KEY');
   if (!key) {
-    throw new VaultConfigError(
-      'VAULT_CONTENT_KEY is missing. Configure it in .env or Vercel Environment Variables to decrypt vault drafts.'
-    );
+    console.error('[vault] Missing VAULT_CONTENT_KEY in environment.');
+    throw new VaultConfigError('Zugang momentan nicht verfügbar.');
   }
   const envelope = JSON.parse(fs.readFileSync(bundlePath, 'utf8'));
   const decrypted = decryptVaultPayload(envelope, key);

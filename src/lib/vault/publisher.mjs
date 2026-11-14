@@ -45,9 +45,8 @@ function buildUpdatedStateJson(slug, publish) {
 async function commitStateViaGitHub(serializedJson) {
   const token = getEnvValue('GITHUB_PUBLISH_TOKEN');
   if (!token) {
-    throw new VaultConfigError(
-      'GITHUB_PUBLISH_TOKEN is not configured in Vercel Environment Variables. Cannot commit publication state in production.'
-    );
+    console.error('[vault] Missing GITHUB_PUBLISH_TOKEN in production environment.');
+    throw new VaultConfigError('Freigabe-Dienst in dieser Umgebung nicht aktiviert.');
   }
 
   const repo = getEnvValue('GITHUB_REPO') ?? DEFAULT_GITHUB_REPO;
@@ -67,14 +66,14 @@ async function commitStateViaGitHub(serializedJson) {
 
   if (!getRes.ok) {
     const errText = await getRes.text();
-    throw new VaultUpstreamError(
-      `Failed to read ${STATE_REPO_PATH} from GitHub (${getRes.status}): ${errText.slice(0, 200)}`
-    );
+    console.error(`[vault] GitHub read failed (${getRes.status}): ${errText.slice(0, 200)}`);
+    throw new VaultUpstreamError('Status konnte nicht gelesen werden.');
   }
 
   const fileMeta = await getRes.json();
   if (!fileMeta.sha) {
-    throw new VaultUpstreamError('GitHub Contents API response did not include file SHA.');
+    console.error('[vault] GitHub Contents API response missing file SHA.');
+    throw new VaultUpstreamError('Status konnte nicht gelesen werden.');
   }
 
   const putRes = await fetch(apiUrl, {
@@ -84,7 +83,7 @@ async function commitStateViaGitHub(serializedJson) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      message: 'chore(vault): update publication state',
+      message: 'chore: update state',
       content: Buffer.from(serializedJson, 'utf8').toString('base64'),
       sha: fileMeta.sha,
       branch,
@@ -93,9 +92,8 @@ async function commitStateViaGitHub(serializedJson) {
 
   if (!putRes.ok) {
     const errText = await putRes.text();
-    throw new VaultUpstreamError(
-      `Failed to commit publication state to GitHub (${putRes.status}): ${errText.slice(0, 200)}`
-    );
+    console.error(`[vault] GitHub commit failed (${putRes.status}): ${errText.slice(0, 200)}`);
+    throw new VaultUpstreamError('Status konnte nicht gespeichert werden.');
   }
 
   const commitPayload = await putRes.json();

@@ -51,7 +51,6 @@ export function encryptVaultPayload(plaintextUtf8, keyBase64Url) {
   ]);
   const authTag = cipher.getAuthTag();
   return {
-    alg: 'AES-256-GCM',
     v: 1,
     iv: iv.toString('base64url'),
     tag: authTag.toString('base64url'),
@@ -62,7 +61,7 @@ export function encryptVaultPayload(plaintextUtf8, keyBase64Url) {
 export function decryptVaultPayload(envelope, keyBase64Url) {
   if (
     !envelope ||
-    envelope.alg !== 'AES-256-GCM' ||
+    envelope.v !== 1 ||
     typeof envelope.iv !== 'string' ||
     typeof envelope.tag !== 'string' ||
     typeof envelope.ct !== 'string'

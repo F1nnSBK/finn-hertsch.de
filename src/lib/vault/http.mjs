@@ -102,12 +102,12 @@ export function loadVaultCredentials() {
   const passwordHash = getEnvValue('VAULT_PASSWORD_HASH');
   const sessionSecret = getEnvValue('VAULT_SESSION_SECRET');
   if (!passwordHash || !sessionSecret) {
-    throw new VaultConfigError(
-      'Vault credentials missing. Set VAULT_PASSWORD_HASH and VAULT_SESSION_SECRET (run `npm run vault:setup` locally or configure Vercel Environment Variables).'
-    );
+    console.error('[vault] Missing VAULT_PASSWORD_HASH or VAULT_SESSION_SECRET in environment.');
+    throw new VaultConfigError('Zugang momentan nicht verfügbar.');
   }
   if (sessionSecret.length < 32) {
-    throw new VaultConfigError('VAULT_SESSION_SECRET must be at least 32 characters long.');
+    console.error('[vault] VAULT_SESSION_SECRET is shorter than 32 characters.');
+    throw new VaultConfigError('Zugang momentan nicht verfügbar.');
   }
   return { passwordHash, sessionSecret };
 }
