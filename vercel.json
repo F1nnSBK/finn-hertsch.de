@@ -1,0 +1,46 @@
+{
+  "fluid": true,
+  "functions": {
+    "api/**/*.mjs": {
+      "includeFiles": "{vault-encrypted/**,src/content/blog/**,src/data/publication-state.json,src/styles/global.css}"
+    }
+  },
+  "redirects": [
+    {
+      "source": "/essays",
+      "destination": "/blog/",
+      "permanent": true
+    },
+    {
+      "source": "/essays/:slug*",
+      "destination": "/blog/:slug*",
+      "permanent": true
+    },
+    {
+      "source": "/en/essays",
+      "destination": "/en/blog/",
+      "permanent": true
+    },
+    {
+      "source": "/en/essays/:slug*",
+      "destination": "/en/blog/:slug*",
+      "permanent": true
+    }
+  ],
+  "headers": [
+    {
+      "source": "/vault(.*)",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" },
+        { "key": "Cache-Control", "value": "no-store, max-age=0" }
+      ]
+    },
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" },
+        { "key": "Cache-Control", "value": "no-store, max-age=0" }
+      ]
+    }
+  ]
+}

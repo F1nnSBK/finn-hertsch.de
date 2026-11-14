@@ -1,0 +1,597 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Vault | Finn Hertsch" description="Geschützter Redaktionsbereich." lang="de" noindex={true}>
+  <div class="top-nav">
+    <a href="/blog?lang=de" class="back-link mono">← /blog</a>
+    <button id="vault-logout-btn" type="button" class="action-link mono" hidden>[Sperren]</button>
+  </div>
+
+  <header class="page-header">
+    <div class="mono text-sm muted">[VAULT · SCRYPT + HMAC-SHA256]</div>
+    <h1>Entwürfe &amp; Freigabe</h1>
+    <p class="muted">
+      Unveröffentlichte Artikel sind vollständig aus <code>/blog</code>, <code>sitemap-0.xml</code> und <code>/llms.txt</code> entfernt, bis sie hier freigegeben werden.
+    </p>
+  </header>
+
+  <hr />
+
+  <div id="vault-status-banner" class="status-banner mono" hidden></div>
+
+  <section id="vault-login-view" class="vault-card" hidden>
+    <form id="vault-login-form" autocomplete="on">
+      <label for="vault-password" class="field-label mono">Passwort zur Entschlüsselung der Session</label>
+      <div class="password-row">
+        <input
+          id="vault-password"
+          name="password"
+          type="password"
+          autocomplete="current-password"
+          placeholder="Passwort eingeben …"
+          required
+        />
+        <button id="vault-unlock-btn" type="submit" class="primary-btn mono">Entsperren</button>
+      </div>
+      <p id="vault-login-error" class="error-msg mono" hidden></p>
+    </form>
+  </section>
+
+  <section id="vault-dashboard-view" hidden>
+    <div class="dashboard-meta mono text-sm muted">
+      <span id="vault-env-indicator"></span>
+      <span id="vault-counts"></span>
+    </div>
+    <ul id="vault-post-list" class="vault-list"></ul>
+  </section>
+</BaseLayout>
+
+<script is:inline>
+  (function () {
+    const loginView = document.getElementById('vault-login-view');
+    const dashboardView = document.getElementById('vault-dashboard-view');
+    const loginForm = document.getElementById('vault-login-form');
+    const passwordInput = document.getElementById('vault-password');
+    const unlockBtn = document.getElementById('vault-unlock-btn');
+    const loginError = document.getElementById('vault-login-error');
+    const logoutBtn = document.getElementById('vault-logout-btn');
+    const postListEl = document.getElementById('vault-post-list');
+    const statusBanner = document.getElementById('vault-status-banner');
+    const envIndicator = document.getElementById('vault-env-indicator');
+    const countsEl = document.getElementById('vault-counts');
+
+    let pendingConfirmSlug = null;
+
+    function showBanner(message, tone) {
+      statusBanner.textContent = message;
+      statusBanner.dataset.tone = tone || 'info';
+      statusBanner.hidden = false;
+    }
+
+    function clearBanner() {
+      statusBanner.hidden = true;
+      statusBanner.textContent = '';
+    }
+
+    function formatDate(dateStr) {
+      const d = new Date(dateStr);
+      if (Number.isNaN(d.getTime())) return dateStr;
+      return d.toLocaleDateString('de-DE', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+    }
+
+    function showLockedState(errorMessage) {
+      dashboardView.hidden = true;
+      logoutBtn.hidden = true;
+      loginView.hidden = false;
+      if (errorMessage) {
+        loginError.textContent = errorMessage;
+        loginError.hidden = false;
+      } else {
+        loginError.hidden = true;
+      }
+      setTimeout(function () {
+        passwordInput.focus();
+      }, 30);
+    }
+
+    function createPostCard(post) {
+      const li = document.createElement('li');
+      li.className = 'vault-item' + (post.published ? ' is-live' : ' is-draft');
+
+      const headerRow = document.createElement('div');
+      headerRow.className = 'item-meta-row mono';
+
+      const badge = document.createElement('span');
+      badge.className = 'status-pill ' + (post.published ? 'pill-live' : 'pill-draft');
+      badge.textContent = post.published ? 'ÖFFENTLICH · LIVE' : 'GESPERRT · ENTWURF';
+      headerRow.appendChild(badge);
+
+      if (post.distillBundle) {
+        const typeBadge = document.createElement('span');
+        typeBadge.className = 'type-pill';
+        typeBadge.textContent = 'DISTILL + SVG';
+        headerRow.appendChild(typeBadge);
+      }
+
+      const dateSpan = document.createElement('span');
+      dateSpan.className = 'muted';
+      dateSpan.textContent = formatDate(post.date);
+      headerRow.appendChild(dateSpan);
+      li.appendChild(headerRow);
+
+      const titleEl = document.createElement('h2');
+      titleEl.className = 'item-title';
+      titleEl.textContent = post.titleDe || post.titleEn || post.slug;
+      li.appendChild(titleEl);
+
+      if (post.titleEn && post.titleDe && post.titleEn !== post.titleDe) {
+        const subTitle = document.createElement('div');
+        subTitle.className = 'item-subtitle muted';
+        subTitle.textContent = 'EN: ' + post.titleEn;
+        li.appendChild(subTitle);
+      }
+
+      if (post.descriptionDe || post.descriptionEn) {
+        const desc = document.createElement('p');
+        desc.className = 'item-desc';
+        desc.textContent = post.descriptionDe || post.descriptionEn;
+        li.appendChild(desc);
+      }
+
+      const controls = document.createElement('div');
+      controls.className = 'item-controls mono';
+
+      const previewGroup = document.createElement('div');
+      previewGroup.className = 'preview-links';
+
+      if (post.hasDe) {
+        const deLink = document.createElement('a');
+        deLink.href = '/api/vault/preview?slug=' + encodeURIComponent(post.slug) + '&lang=de';
+        deLink.textContent = '[Vorschau DE ↗]';
+        previewGroup.appendChild(deLink);
+      }
+
+      if (post.hasEn) {
+        const enLink = document.createElement('a');
+        enLink.href = '/api/vault/preview?slug=' + encodeURIComponent(post.slug) + '&lang=en';
+        enLink.textContent = '[Vorschau EN ↗]';
+        previewGroup.appendChild(enLink);
+      }
+
+      if (post.published) {
+        const liveLink = document.createElement('a');
+        liveLink.href = post.publicUrlDe;
+        liveLink.target = '_blank';
+        liveLink.rel = 'noopener noreferrer';
+        liveLink.textContent = '[Live öffnen ↗]';
+        previewGroup.appendChild(liveLink);
+      }
+
+      controls.appendChild(previewGroup);
+
+      const actionGroup = document.createElement('div');
+      actionGroup.className = 'publish-actions';
+
+      if (pendingConfirmSlug === post.slug) {
+        const promptLabel = document.createElement('span');
+        promptLabel.className = 'confirm-label';
+        promptLabel.textContent = post.published ? 'Wirklich sperren?' : 'Jetzt veröffentlichen?';
+        actionGroup.appendChild(promptLabel);
+
+        const confirmBtn = document.createElement('button');
+        confirmBtn.type = 'button';
+        confirmBtn.className = post.published ? 'danger-btn mono' : 'publish-btn mono';
+        confirmBtn.textContent = post.published ? 'Ja, zurückziehen' : 'Ja, veröffentlichen';
+        confirmBtn.addEventListener('click', function () {
+          togglePublish(post.slug, !post.published, confirmBtn);
+        });
+        actionGroup.appendChild(confirmBtn);
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.type = 'button';
+        cancelBtn.className = 'ghost-btn mono';
+        cancelBtn.textContent = 'Abbrechen';
+        cancelBtn.addEventListener('click', function () {
+          pendingConfirmSlug = null;
+          renderDashboard(window.__vaultState);
+        });
+        actionGroup.appendChild(cancelBtn);
+      } else {
+        const triggerBtn = document.createElement('button');
+        triggerBtn.type = 'button';
+        triggerBtn.className = post.published ? 'ghost-btn mono' : 'publish-btn mono';
+        triggerBtn.textContent = post.published ? 'Zurückziehen (Sperren)' : 'Veröffentlichen';
+        triggerBtn.addEventListener('click', function () {
+          pendingConfirmSlug = post.slug;
+          renderDashboard(window.__vaultState);
+        });
+        actionGroup.appendChild(triggerBtn);
+      }
+
+      controls.appendChild(actionGroup);
+      li.appendChild(controls);
+      return li;
+    }
+
+    function renderDashboard(data) {
+      window.__vaultState = data;
+      loginView.hidden = true;
+      dashboardView.hidden = false;
+      logoutBtn.hidden = false;
+
+      const posts = Array.isArray(data.posts) ? data.posts : [];
+      const draftCount = posts.filter(function (p) { return !p.published; }).length;
+      const liveCount = posts.filter(function (p) { return p.published; }).length;
+
+      envIndicator.textContent =
+        data.environment === 'vercel'
+          ? 'Modus: Vercel Production (GitHub Commit Deploy)'
+          : 'Modus: Lokal (Sofortige Datei-Synchronisation)';
+      countsEl.textContent = draftCount + ' gesperrt · ' + liveCount + ' öffentlich';
+
+      postListEl.innerHTML = '';
+      posts.forEach(function (post) {
+        postListEl.appendChild(createPostCard(post));
+      });
+    }
+
+    async function togglePublish(slug, targetPublished, btnEl) {
+      btnEl.disabled = true;
+      btnEl.textContent = 'Wird gespeichert …';
+      clearBanner();
+
+      try {
+        const res = await fetch('/api/vault/publish', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slug: slug, published: targetPublished }),
+        });
+        const payload = await res.json();
+        if (!res.ok) {
+          showBanner(payload.error || 'Fehler beim Aktualisieren des Status.', 'error');
+          pendingConfirmSlug = null;
+          renderDashboard(window.__vaultState);
+          return;
+        }
+
+        pendingConfirmSlug = null;
+        renderDashboard({
+          authenticated: true,
+          environment: window.__vaultState.environment,
+          posts: payload.posts,
+        });
+
+        if (payload.mode === 'github') {
+          showBanner(
+            (targetPublished ? 'Veröffentlichung' : 'Sperrung') +
+              ' per GitHub-Commit (' +
+              (payload.commitSha || 'HEAD') +
+              ') ausgelöst – Vercel baut die Seite in ca. 25 Sekunden neu.',
+            'success'
+          );
+        } else {
+          showBanner(
+            targetPublished
+              ? 'Artikel ist sofort live unter /blog, /en/blog und /llms.txt.'
+              : 'Artikel ist wieder gesperrt und aus allen öffentlichen Listen entfernt.',
+            'success'
+          );
+        }
+      } catch (_err) {
+        showBanner('Netzwerkfehler beim Senden der Anfrage.', 'error');
+        btnEl.disabled = false;
+      }
+    }
+
+    async function checkInitialSession() {
+      try {
+        const res = await fetch('/api/vault/session', { method: 'GET' });
+        const payload = await res.json();
+        if (res.ok && payload.authenticated) {
+          renderDashboard(payload);
+          return;
+        }
+        if (res.status === 503) {
+          showLockedState(payload.error);
+          return;
+        }
+        showLockedState('');
+      } catch (_err) {
+        showLockedState('Server nicht erreichbar.');
+      }
+    }
+
+    loginForm.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      loginError.hidden = true;
+      clearBanner();
+      unlockBtn.disabled = true;
+      unlockBtn.textContent = 'Prüfe …';
+
+      try {
+        const res = await fetch('/api/vault/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: passwordInput.value }),
+        });
+        const payload = await res.json();
+        if (!res.ok) {
+          loginError.textContent = payload.error || 'Zugriff verweigert.';
+          loginError.hidden = false;
+          passwordInput.select();
+          return;
+        }
+        passwordInput.value = '';
+        renderDashboard(payload);
+      } catch (_err) {
+        loginError.textContent = 'Netzwerkfehler bei der Anmeldung.';
+        loginError.hidden = false;
+      } finally {
+        unlockBtn.disabled = false;
+        unlockBtn.textContent = 'Entsperren';
+      }
+    });
+
+    logoutBtn.addEventListener('click', async function () {
+      clearBanner();
+      await fetch('/api/vault/session', { method: 'DELETE' });
+      pendingConfirmSlug = null;
+      showLockedState('');
+    });
+
+    checkInitialSession();
+  })();
+</script>
+
+<style>
+  .top-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2.5rem;
+  }
+
+  .back-link,
+  .action-link {
+    font-size: 0.9rem;
+    color: var(--fg-muted);
+    text-decoration: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .back-link:hover,
+  .action-link:hover {
+    color: var(--fg);
+    text-decoration: underline;
+  }
+
+  .page-header h1 {
+    margin-top: 0.35rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .vault-card {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1.5rem;
+  }
+
+  .field-label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--fg-muted);
+    margin-bottom: 0.65rem;
+  }
+
+  .password-row {
+    display: flex;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+  }
+
+  .password-row input {
+    flex: 1 1 240px;
+    font-family: var(--font-mono);
+    font-size: 0.92rem;
+    padding: 0.6rem 0.8rem;
+    background: var(--bg);
+    color: var(--fg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    outline: none;
+  }
+
+  .password-row input:focus {
+    border-color: var(--fg);
+  }
+
+  .primary-btn,
+  :global(.publish-btn),
+  :global(.danger-btn),
+  :global(.ghost-btn) {
+    font-size: 0.82rem;
+    padding: 0.55rem 0.95rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: opacity 0.15s ease, background-color 0.15s ease;
+  }
+
+  .primary-btn,
+  :global(.publish-btn) {
+    background: var(--fg);
+    color: var(--bg);
+    border: 1px solid var(--fg);
+    font-weight: 600;
+  }
+
+  :global(.danger-btn) {
+    background: #b91c1c;
+    color: #ffffff;
+    border: 1px solid #b91c1c;
+    font-weight: 600;
+  }
+
+  :global(.ghost-btn) {
+    background: transparent;
+    color: var(--fg-muted);
+    border: 1px solid var(--border);
+  }
+
+  :global(.ghost-btn:hover) {
+    color: var(--fg);
+    border-color: var(--fg);
+  }
+
+  .error-msg {
+    margin-top: 0.85rem;
+    margin-bottom: 0;
+    font-size: 0.82rem;
+    color: #dc2626;
+  }
+
+  .status-banner {
+    padding: 0.8rem 1rem;
+    border-radius: 5px;
+    font-size: 0.82rem;
+    margin-bottom: 1.75rem;
+    border: 1px solid var(--border);
+    background: var(--code-bg);
+  }
+
+  .status-banner[data-tone="success"] {
+    border-color: #16a34a;
+  }
+
+  .status-banner[data-tone="error"] {
+    border-color: #dc2626;
+    color: #dc2626;
+  }
+
+  .dashboard-meta {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .vault-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  :global(.vault-item) {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1.35rem 1.4rem;
+    margin-bottom: 1.4rem;
+    background: var(--bg);
+  }
+
+  :global(.vault-item.is-draft) {
+    background: var(--code-bg);
+  }
+
+  :global(.item-meta-row) {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    font-size: 0.76rem;
+    margin-bottom: 0.65rem;
+  }
+
+  :global(.status-pill) {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 3px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+  }
+
+  :global(.pill-draft) {
+    background: rgba(217, 119, 6, 0.14);
+    color: #d97706;
+    border: 1px solid rgba(217, 119, 6, 0.35);
+  }
+
+  :global(.pill-live) {
+    background: rgba(22, 163, 74, 0.14);
+    color: #16a34a;
+    border: 1px solid rgba(22, 163, 74, 0.35);
+  }
+
+  :global(.type-pill) {
+    padding: 0.12rem 0.45rem;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    color: var(--fg-muted);
+  }
+
+  :global(.item-title) {
+    font-size: 1.3rem;
+    margin: 0 0 0.35rem 0;
+    line-height: 1.35;
+  }
+
+  :global(.item-subtitle) {
+    font-size: 0.9rem;
+    margin-bottom: 0.55rem;
+    font-style: italic;
+  }
+
+  :global(.item-desc) {
+    font-size: 0.94rem;
+    color: var(--fg-muted);
+    line-height: 1.55;
+    margin-bottom: 1.1rem;
+  }
+
+  :global(.item-controls) {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.85rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--border);
+  }
+
+  :global(.preview-links) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.85rem;
+    font-size: 0.82rem;
+  }
+
+  :global(.preview-links a) {
+    text-decoration: none;
+  }
+
+  :global(.preview-links a:hover) {
+    text-decoration: underline;
+  }
+
+  :global(.publish-actions) {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  :global(.confirm-label) {
+    font-size: 0.78rem;
+    color: var(--fg-muted);
+    margin-right: 0.25rem;
+  }
+</style>

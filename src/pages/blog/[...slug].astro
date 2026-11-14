@@ -1,0 +1,234 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCollection, render } from 'astro:content';
+import { canonicalizeSlug, isPostPublished } from '../../lib/publicationState.mjs';
+
+export async function getStaticPaths() {
+  const posts = await getCollection(
+    'blog',
+    ({ id, data }) => data.lang === 'de' && isPostPublished(id)
+  );
+  return posts.map((entry) => ({
+    params: { slug: canonicalizeSlug(entry.id) },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const slug = canonicalizeSlug(entry.id);
+const { Content, headings } = await render(entry);
+const tocHeadings = headings.filter((h) => h.depth === 2);
+
+function formatDate(dateStr: string) {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('de-DE', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+}
+const isRedirect = Boolean(entry.data.url);
+const canonicalTarget = isRedirect && entry.data.url
+  ? new URL(entry.data.url, Astro.site).href
+  : undefined;
+
+const postSchema = {
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": entry.data.title,
+  "description": entry.data.description,
+  "datePublished": entry.data.date,
+  "inLanguage": "de",
+  "mainEntityOfPage": canonicalTarget || new URL(`/blog/${slug}/`, Astro.site).href,
+  "author": {
+    "@type": "Person",
+    "name": "Finn Hertsch",
+    "url": "https://finn-hertsch.de/"
+  }
+};
+---
+
+<BaseLayout 
+  title={`${entry.data.title} | Finn Hertsch`} 
+  description={entry.data.description} 
+  lang="de"
+  canonical={canonicalTarget}
+  ogType="article"
+  schema={postSchema}
+>
+  <Fragment slot="head">
+    {entry.data.url && (
+      <>
+        <meta http-equiv="refresh" content={`0;url=${entry.data.url}`} />
+        <script is:inline define:vars={{ redirectUrl: entry.data.url }}>
+          window.location.replace(redirectUrl);
+        </script>
+      </>
+    )}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
+    <script is:inline>
+      document.addEventListener("DOMContentLoaded", function() {
+        if (typeof renderMathInElement === "function") {
+          renderMathInElement(document.body, {
+            delimiters: [
+              {left: "$$", right: "$$", display: true},
+              {left: "$", right: "$", display: false}
+            ],
+            ignoredTags: ["script", "noscript", "style", "textarea", "pre", "code"],
+            ignoredClasses: ["katex", "katex-display"],
+            throwOnError: false
+          });
+        }
+      });
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&display=swap" rel="stylesheet">
+  </Fragment>
+
+  <div class="top-nav">
+    <a href="/blog" class="back-link mono">← /blog</a>
+    <a href={`/en/blog/${slug}?lang=en`} class="lang-link mono">[EN] English</a>
+  </div>
+
+  <article class="essay-article">
+    <header class="essay-header">
+      <div class="date mono muted text-sm">{formatDate(entry.data.date)}</div>
+      <h1 class="title">{entry.data.title}</h1>
+      <p class="summary muted italic">{entry.data.description}</p>
+    </header>
+
+    <hr />
+
+    {!entry.data.url && tocHeadings.length > 1 && (
+      <nav class="toc-card" aria-label="Inhaltsverzeichnis">
+        <div class="toc-title mono">Inhaltsverzeichnis</div>
+        <ol class="toc-list">
+          {tocHeadings.map((h, idx) => (
+            <li>
+              <a href={`#${h.slug}`}>
+                <span class="toc-num mono">{String(idx + 1).padStart(2, '0')}</span>
+                <span>{h.text.replace(/^\d+\.\s*/, '')}</span>
+              </a>
+            </li>
+          ))}
+        </ol>
+      </nav>
+    )}
+
+    <div class="essay-content">
+      <Content />
+    </div>
+
+    <hr />
+
+    <div class="bottom-nav">
+      <a href="/blog" class="back-link mono">← Zurück zum Blog</a>
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .top-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2.5rem;
+  }
+
+  .back-link,
+  .lang-link {
+    font-size: 0.9rem;
+    color: var(--fg-muted);
+    text-decoration: none;
+  }
+
+  .back-link:hover,
+  .lang-link:hover {
+    color: var(--fg);
+    text-decoration: underline;
+  }
+
+  .essay-header {
+    margin-bottom: 2rem;
+  }
+
+  .date {
+    margin-bottom: 0.5rem;
+  }
+
+  .title {
+    font-size: 2.1rem;
+    line-height: 1.25;
+    margin-bottom: 1rem;
+    letter-spacing: -0.02em;
+  }
+
+  .summary {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: var(--fg-muted);
+  }
+
+  .italic {
+    font-style: italic;
+  }
+
+  .essay-content {
+    margin: 2.5rem 0;
+  }
+
+  .toc-card {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.95rem 1.2rem;
+    margin: 1.75rem 0 2rem 0;
+  }
+
+  .toc-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--fg-muted);
+    margin-bottom: 0.55rem;
+  }
+
+  .toc-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 0.35rem 1.25rem;
+  }
+
+  .toc-list li {
+    font-size: 0.9rem;
+    line-height: 1.45;
+  }
+
+  .toc-list a {
+    color: var(--fg);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+  }
+
+  .toc-list a:hover {
+    border-bottom-color: var(--fg);
+  }
+
+  .toc-num {
+    font-size: 0.78rem;
+    color: var(--fg-muted);
+    margin-right: 0.4rem;
+  }
+
+  .bottom-nav {
+    margin-top: 3rem;
+    padding-bottom: 3rem;
+  }
+</style>

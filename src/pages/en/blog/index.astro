@@ -1,0 +1,103 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+import { canonicalizeSlug, isPostPublished } from '../../../lib/publicationState.mjs';
+
+const posts = await getCollection(
+  'blog',
+  ({ id, data }) => data.lang === 'en' && isPostPublished(id)
+);
+posts.sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime());
+
+function formatDate(dateStr: string) {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+}
+---
+
+<BaseLayout title="Blog | Finn Hertsch" description="Blog posts on systems engineering, representation geometry, epistemology, and minimalist machine learning." lang="en">
+  <div class="top-nav">
+    <a href="/en?lang=en" class="back-link mono">← finn-hertsch.de/en</a>
+    <a href="/blog?lang=de" class="lang-link mono">[DE] Deutsch</a>
+  </div>
+
+  <header class="page-header">
+    <h1>Blog</h1>
+    <p class="muted">Blog posts on systems architecture, geometric deep learning, epistemology, and mechanical efficiency.</p>
+  </header>
+
+  <hr />
+
+  <ul class="essay-list">
+    {posts.map((post) => {
+      const slug = canonicalizeSlug(post.id);
+      return (
+        <li class="essay-item">
+          <div class="date mono muted text-sm">{formatDate(post.data.date)}</div>
+          <h2 class="essay-title">
+            <a href={post.data.url ?? `/en/blog/${slug}`} data-astro-prefetch="hover">{post.data.title}</a>
+          </h2>
+          <p class="essay-desc">{post.data.description}</p>
+        </li>
+      );
+    })}
+  </ul>
+</BaseLayout>
+
+<style>
+  .top-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2.5rem;
+  }
+
+  .back-link,
+  .lang-link {
+    font-size: 0.9rem;
+    color: var(--fg-muted);
+    text-decoration: none;
+  }
+
+  .back-link:hover,
+  .lang-link:hover {
+    color: var(--fg);
+    text-decoration: underline;
+  }
+
+  .page-header h1 {
+    margin-bottom: 0.5rem;
+  }
+
+  .essay-list {
+    list-style: none;
+    padding: 0;
+    margin-top: 2rem;
+  }
+
+  .essay-item {
+    margin-bottom: 3rem;
+  }
+
+  .date {
+    margin-bottom: 0.35rem;
+  }
+
+  .essay-title {
+    font-size: 1.35rem;
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+  }
+
+  .essay-desc {
+    font-size: 0.98rem;
+    color: var(--fg-muted);
+    line-height: 1.6;
+    margin-bottom: 0;
+  }
+</style>

@@ -1,17 +1,109 @@
 ---
 import '../styles/global.css';
+import { isPostPublished } from '../lib/publicationState.mjs';
 
 interface Props {
   title?: string;
   description?: string;
   lang?: string;
+  canonical?: string;
+  ogType?: 'website' | 'article';
+  schema?: Record<string, any>;
+  noindex?: boolean;
 }
 
 const { 
   title = "Finn Hertsch", 
-  description = "Finn Hertsch — Research in Representation Geometry, Self-Supervised Vision & Stream Processing.",
-  lang = "de"
+  description = "Finn Hertsch – Research in Representation Geometry, Self-Supervised Vision & Stream Processing.",
+  lang = "de",
+  canonical,
+  ogType = "website",
+  schema,
+  noindex = false
 } = Astro.props;
+
+const siteOrigin = Astro.site ? Astro.site.origin : 'https://finn-hertsch.de';
+const rawPath = Astro.url.pathname;
+const normalizedPath = rawPath.endsWith('/') ? rawPath : `${rawPath}/`;
+const defaultCanonical = new URL(normalizedPath, siteOrigin).href;
+const canonicalUrl = canonical ? (canonical.endsWith('/') ? canonical : `${canonical}/`) : defaultCanonical;
+
+// Determine bilingual hreflang pairs for pages with DE <-> EN counterparts
+const isBilingual = normalizedPath === '/' || normalizedPath === '/en/' || normalizedPath.startsWith('/blog/') || normalizedPath.startsWith('/en/blog/');
+
+let dePath = normalizedPath;
+let enPath = normalizedPath;
+
+if (isBilingual) {
+  if (normalizedPath.startsWith('/en/')) {
+    dePath = normalizedPath.replace(/^\/en\//, '/');
+    enPath = normalizedPath;
+  } else if (normalizedPath === '/en') {
+    dePath = '/';
+    enPath = '/en/';
+  } else {
+    dePath = normalizedPath;
+    enPath = `/en${normalizedPath}`;
+  }
+}
+
+const deUrl = new URL(dePath, siteOrigin).href;
+const enUrl = new URL(enPath, siteOrigin).href;
+
+const knowsAbout = [
+  "Representation Geometry",
+  "Self-Supervised Learning",
+  "Linear Attention",
+  "Reinforcement Learning",
+  "Multi-Armed Bandits"
+];
+
+// Default structured data (Schema.org JSON-LD for Generative Engine Optimization)
+const personSchema = {
+  "@type": "Person",
+  "@id": "https://finn-hertsch.de/#person",
+  "name": "Finn Hertsch",
+  "url": "https://finn-hertsch.de/",
+  "jobTitle": "Data Science & AI Researcher",
+  "worksFor": {
+    "@type": "Organization",
+    "name": "DHBW Ravensburg",
+    "url": "https://www.ravensburg.dhbw.de/"
+  },
+  "sameAs": [
+    "https://github.com/F1nnSBK",
+    "https://scholar.google.com/citations?user=JZoMIcMAAAAJ&hl=en"
+  ],
+  "knowsAbout": knowsAbout
+};
+
+const defaultSchema = (normalizedPath === '/' || normalizedPath === '/en/') 
+  ? {
+      "@context": "https://schema.org",
+      "@graph": [
+        personSchema,
+        {
+          "@type": "WebSite",
+          "@id": "https://finn-hertsch.de/#website",
+          "url": "https://finn-hertsch.de/",
+          "name": "Finn Hertsch",
+          "description": description,
+          "publisher": { "@id": "https://finn-hertsch.de/#person" },
+          "inLanguage": lang
+        }
+      ]
+    }
+  : {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": title,
+      "description": description,
+      "url": canonicalUrl,
+      "inLanguage": lang,
+      "author": { "@id": "https://finn-hertsch.de/#person" }
+    };
+
+const activeSchema = schema ?? defaultSchema;
 ---
 
 <!DOCTYPE html>
@@ -20,16 +112,45 @@ const {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content={description} />
+    {noindex && <meta name="robots" content="noindex, nofollow, noarchive" />}
     <title>{title}</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    {!noindex && <link rel="canonical" href={canonicalUrl} />}
+    {isBilingual && !noindex && (
+      <>
+        <link rel="alternate" hreflang="de" href={deUrl} />
+        <link rel="alternate" hreflang="en" href={enUrl} />
+        <link rel="alternate" hreflang="x-default" href={deUrl} />
+      </>
+    )}
 
-    <script is:inline>
+    {!noindex && (
+      <>
+        <!-- Open Graph / Generative Engine Optimization Metadata -->
+        <meta property="og:site_name" content="Finn Hertsch" />
+        <meta property="og:title" content={title} />
+        <meta property="og:description" content={description} />
+        <meta property="og:url" content={canonicalUrl} />
+        <meta property="og:type" content={ogType} />
+        <meta property="og:locale" content={lang === "de" ? "de_DE" : "en_US"} />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content={title} />
+        <meta name="twitter:description" content={description} />
+
+        <!-- Schema.org Structured Data for LLMs and Search Engines -->
+        <script type="application/ld+json" set:html={JSON.stringify(activeSchema)} />
+      </>
+    )}
+
+    <slot name="head" />
+
+    <script is:inline define:vars={{ isBilingual }}>
       (function() {
         var currentLang = document.documentElement.lang;
         var browserLang = navigator.language || navigator.userLanguage || '';
+        var params = new URLSearchParams(window.location.search);
         
-        // Skip redirect if the user already explicitly requested English or is already on an English route
-        if (currentLang === 'de' && !browserLang.toLowerCase().startsWith('de')) {
+        if (isBilingual && currentLang === 'de' && !browserLang.toLowerCase().startsWith('de') && params.get('lang') !== 'de') {
           var path = window.location.pathname;
           if (!path.startsWith('/en')) {
             var newPath = '/en' + (path === '/' ? '' : path);

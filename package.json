@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
-    "preview": "astro preview"
+    "preview": "astro preview",
+    "test": "node --test tests/*.test.mjs",
+    "vault:setup": "node scripts/setup-vault-password.mjs"
   },
   "dependencies": {
     "@astrojs/markdown-remark": "^7.2.4",

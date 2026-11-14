@@ -1,9 +1,13 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getCollection } from 'astro:content';
+import { canonicalizeSlug, isPostPublished } from '../../lib/publicationState.mjs';
 
-const essays = await getCollection('essays');
-essays.sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime());
+const posts = await getCollection(
+  'blog',
+  ({ id, data }) => data.lang === 'de' && isPostPublished(id)
+);
+posts.sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime());
 
 function formatDate(dateStr: string) {
   const date = new Date(dateStr);
@@ -15,26 +19,27 @@ function formatDate(dateStr: string) {
 }
 ---
 
-<BaseLayout title="Essays | Finn Hertsch" description="Schriften über Systems Engineering, Representation Geometry und minimalistisches Machine Learning.">
+<BaseLayout title="Blog | Finn Hertsch" description="Blog Posts über Systems Engineering, Representation Geometry und minimalistisches Machine Learning." lang="de">
   <div class="top-nav">
-    <a href="/" class="back-link mono">← finn-hertsch.de</a>
+    <a href="/?lang=de" class="back-link mono">← finn-hertsch.de</a>
+    <a href="/en/blog?lang=en" class="lang-link mono">[EN] English</a>
   </div>
 
   <header class="page-header">
-    <h1>Essays &amp; Schriften</h1>
-    <p class="muted">Gedanken zu Systems Architecture, geometrischem Deep Learning und mechanischer Effizienz.</p>
+    <h1>Blog</h1>
+    <p class="muted">Blog Posts zu Systems Architecture, geometrischem Deep Learning, Erkenntnistheorie und mechanischer Effizienz.</p>
   </header>
 
   <hr />
 
   <ul class="essay-list">
-    {essays.map((essay) => (
+    {posts.map((post) => (
       <li class="essay-item">
-        <div class="date mono muted text-sm">{formatDate(essay.data.date)}</div>
+        <div class="date mono muted text-sm">{formatDate(post.data.date)}</div>
         <h2 class="essay-title">
-          <a href={`/essays/${essay.id}`} data-astro-prefetch="hover">{essay.data.title}</a>
+          <a href={post.data.url ?? `/blog/${canonicalizeSlug(post.id)}`} data-astro-prefetch="hover">{post.data.title}</a>
         </h2>
-        <p class="essay-desc">{essay.data.description}</p>
+        <p class="essay-desc">{post.data.description}</p>
       </li>
     ))}
   </ul>
@@ -42,16 +47,21 @@ function formatDate(dateStr: string) {
 
 <style>
   .top-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 2.5rem;
   }
 
-  .back-link {
+  .back-link,
+  .lang-link {
     font-size: 0.9rem;
     color: var(--fg-muted);
     text-decoration: none;
   }
 
-  .back-link:hover {
+  .back-link:hover,
+  .lang-link:hover {
     color: var(--fg);
     text-decoration: underline;
   }
