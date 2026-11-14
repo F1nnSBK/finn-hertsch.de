@@ -28,23 +28,28 @@ const root = resolveProjectRoot();
 const envPath = path.join(root, '.env');
 let envContent = fs.existsSync(envPath) ? fs.readFileSync(envPath, 'utf8') : '';
 
-const customPassword = process.argv[2]?.trim();
+const args = process.argv.slice(2);
+const forceRotate = args.includes('--rotate');
+const customPassword = args.find((arg) => !arg.startsWith('--'))?.trim();
+
 const existingHash = readExistingEnvVar(envContent, 'VAULT_PASSWORD_HASH');
 let printedPassword = null;
 let passwordHash = existingHash;
 
-if (customPassword || !existingHash) {
+if (forceRotate || customPassword || !existingHash) {
   printedPassword = customPassword || generateStrongPassword(5, 6);
   passwordHash = hashPassword(printedPassword);
 }
 
 const existingSecret = readExistingEnvVar(envContent, 'VAULT_SESSION_SECRET');
 const sessionSecret =
-  existingSecret && existingSecret.length >= 32 ? existingSecret : generateSessionSecret();
+  !forceRotate && existingSecret && existingSecret.length >= 32
+    ? existingSecret
+    : generateSessionSecret();
 
 const existingContentKey = readExistingEnvVar(envContent, 'VAULT_CONTENT_KEY');
 const contentKey =
-  existingContentKey && Buffer.from(existingContentKey, 'base64url').length === 32
+  !forceRotate && existingContentKey && Buffer.from(existingContentKey, 'base64url').length === 32
     ? existingContentKey
     : generateContentKey();
 
@@ -55,7 +60,7 @@ fs.writeFileSync(envPath, envContent, { mode: 0o600 });
 
 sealLocalVaultToEncryptedBundle(contentKey);
 
-console.log('\n=== Vault Credentials & AES-256-GCM Bundle Configured ===');
+console.log('\n=== Vault Credentials Configured ===');
 if (printedPassword) {
   console.log(`Password (save in password manager): ${printedPassword}`);
 } else {
