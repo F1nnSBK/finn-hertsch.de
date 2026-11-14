@@ -74,6 +74,11 @@ function rewriteDistillPreviewHtml(html, { slug, bundle, lang, published }) {
   );
 
   output = output.replace(
+    /<!-- Cookieless Vercel Web Analytics -->[\s\S]*?\/_vercel\/insights\/script\.js"><\/script>/i,
+    ''
+  );
+
+  output = output.replace(
     /(src|href)="assets\/([^"]+)"/g,
     (_match, attr, assetFile) =>
       `${attr}="/api/vault/asset?bundle=${encodeURIComponent(bundle)}&lang=${lang}&path=${encodeURIComponent(`assets/${assetFile}`)}"`

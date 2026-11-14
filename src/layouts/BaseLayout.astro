@@ -144,6 +144,21 @@ const activeSchema = schema ?? defaultSchema;
 
     <slot name="head" />
 
+    {!noindex && (
+      <>
+        <script is:inline>
+          window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+          window.va('beforeSend', function (event) {
+            if (event && event.url && (event.url.indexOf('/vault') !== -1 || event.url.indexOf('/api/') !== -1)) {
+              return null;
+            }
+            return event;
+          });
+        </script>
+        <script is:inline defer src="/_vercel/insights/script.js"></script>
+      </>
+    )}
+
     <script is:inline define:vars={{ isBilingual }}>
       (function() {
         var currentLang = document.documentElement.lang;

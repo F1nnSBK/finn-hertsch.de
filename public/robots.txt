@@ -9,5 +9,7 @@ User-agent: Applebot-Extended
 Allow: /
 Disallow: /vault
 Disallow: /api/
+Disallow: /cv
+Disallow: /en/cv
 
 Sitemap: https://finn-hertsch.de/sitemap-index.xml
