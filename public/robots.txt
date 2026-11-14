@@ -8,6 +8,7 @@ User-agent: ClaudeBot
 User-agent: Applebot-Extended
 Allow: /
 Disallow: /vault
+Disallow: /share
 Disallow: /api/
 Disallow: /cv
 Disallow: /en/cv

@@ -3,6 +3,7 @@ import path from 'node:path';
 import { createMarkdownProcessor } from '@astrojs/markdown-remark';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
+import rehypeRawHtmlMath from '../rehypeRawHtmlMath.mjs';
 import { resolveProjectRoot } from '../publicationState.mjs';
 import { loadPostForPreview } from './repository.mjs';
 
@@ -12,7 +13,7 @@ function getMarkdownProcessor() {
   if (!processorPromise) {
     processorPromise = createMarkdownProcessor({
       remarkPlugins: [remarkMath],
-      rehypePlugins: [rehypeKatex],
+      rehypePlugins: [rehypeKatex, rehypeRawHtmlMath],
       shikiConfig: {
         theme: 'github-dark',
         wrap: true,
@@ -30,47 +31,84 @@ function escapeHtml(value) {
     .replace(/"/g, '&quot;');
 }
 
-function buildVaultBannerHtml({ slug, lang, published, isDistill, hasDistill }) {
+function formatExpiryLabel(expiresAtUnixSec, lang) {
+  if (!Number.isFinite(expiresAtUnixSec)) return '';
+  const dt = new Date(expiresAtUnixSec * 1000);
+  const formatted = dt.toLocaleString(lang === 'en' ? 'en-GB' : 'de-DE', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  return lang === 'en' ? ` · valid until ${formatted}` : ` · gültig bis ${formatted}`;
+}
+
+function buildVaultBannerHtml({
+  slug,
+  lang,
+  published,
+  isDistill,
+  hasDistill,
+  viewerMode = 'admin',
+  expiresAt = null,
+}) {
   const otherLang = lang === 'de' ? 'en' : 'de';
-  const statusLabel = published
-    ? lang === 'de'
-      ? 'LIVE · ÖFFENTLICH'
-      : 'LIVE · PUBLIC'
-    : lang === 'de'
-      ? 'ENTWURF · PASSWORTGESCHÜTZT'
-      : 'DRAFT · PASSWORD PROTECTED';
-  const statusColor = published ? '#16a34a' : '#d97706';
+  const isShare = viewerMode === 'share';
+  const baseRoute = isShare ? '/share' : '/api/vault/preview';
+  const leftHref = isShare ? (lang === 'en' ? '/en/' : '/') : '/vault';
+  const leftLabel = isShare ? '← finn-hertsch.de' : '← /vault';
+
+  const statusLabel = isShare
+    ? (lang === 'de' ? 'GETEILTER ENTWURF · NUR LESEN' : 'SHARED DRAFT · READ ONLY') +
+      formatExpiryLabel(expiresAt, lang)
+    : published
+      ? lang === 'de'
+        ? 'LIVE · ÖFFENTLICH'
+        : 'LIVE · PUBLIC'
+      : lang === 'de'
+        ? 'ENTWURF · PASSWORTGESCHÜTZT'
+        : 'DRAFT · PASSWORD PROTECTED';
+  const statusColor = !isShare && published ? '#16a34a' : '#d97706';
   const modeToggleHtml = hasDistill
     ? isDistill
-      ? `<a href="/api/vault/preview?slug=${encodeURIComponent(slug)}&lang=${lang}&mode=markdown" style="color:#cbd5e1;text-decoration:none;margin-right:0.9rem;">[Markdown]</a>`
-      : `<a href="/api/vault/preview?slug=${encodeURIComponent(slug)}&lang=${lang}" style="color:#cbd5e1;text-decoration:none;margin-right:0.9rem;">[Distill]</a>`
+      ? `<a href="${baseRoute}?slug=${encodeURIComponent(slug)}&lang=${lang}&mode=markdown" style="color:#cbd5e1;text-decoration:none;margin-right:0.9rem;">[Markdown]</a>`
+      : `<a href="${baseRoute}?slug=${encodeURIComponent(slug)}&lang=${lang}" style="color:#cbd5e1;text-decoration:none;margin-right:0.9rem;">[Distill]</a>`
     : '';
   const modeParam = !isDistill && hasDistill ? '&mode=markdown' : '';
 
   return `
 <div id="fh-vault-banner" style="position:sticky;top:0;z-index:9999;width:100%;background:#111111;color:#f5f5f4;border-bottom:1px solid #292524;padding:0.55rem 1.25rem;font-family:'JetBrains Mono','SF Mono',Menlo,monospace;font-size:12px;display:flex;justify-content:space-between;align-items:center;gap:1rem;box-sizing:border-box;">
   <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
-    <a href="/vault" style="color:#f5f5f4;text-decoration:none;font-weight:600;">← /vault</a>
+    <a href="${leftHref}" style="color:#f5f5f4;text-decoration:none;font-weight:600;">${leftLabel}</a>
     <span style="opacity:0.35;">|</span>
     <span style="display:inline-flex;align-items:center;gap:0.4rem;color:${statusColor};font-weight:600;">
       <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${statusColor};"></span>
-      ${statusLabel}
+      ${escapeHtml(statusLabel)}
     </span>
   </div>
   <div style="display:flex;align-items:center;">
     ${modeToggleHtml}
-    <a href="/api/vault/preview?slug=${encodeURIComponent(slug)}&lang=${otherLang}${modeParam}" style="color:#f5f5f4;text-decoration:underline;text-underline-offset:3px;">[${otherLang.toUpperCase()}]</a>
+    <a href="${baseRoute}?slug=${encodeURIComponent(slug)}&lang=${otherLang}${modeParam}" style="color:#f5f5f4;text-decoration:underline;text-underline-offset:3px;">[${otherLang.toUpperCase()}]</a>
   </div>
 </div>`;
 }
 
-function rewriteDistillPreviewHtml(html, { slug, bundle, lang, published }) {
+function rewriteDistillPreviewHtml(
+  html,
+  { slug, bundle, lang, published, viewerMode = 'admin', expiresAt = null }
+) {
   const otherLang = lang === 'de' ? 'en' : 'de';
+  const isShare = viewerMode === 'share';
+  const baseRoute = isShare ? '/share' : '/api/vault/preview';
+  const backLinkHtml = isShare
+    ? `<a href="${lang === 'en' ? '/en/' : '/'}">← finn-hertsch.de</a>`
+    : '<a href="/vault">← /vault</a>';
   let output = html;
 
   output = output.replace(
     /<!-- Automatic Language Detection[\s\S]*?<\/script>/i,
-    '<!-- Language auto-redirect disabled inside Vault preview -->'
+    '<!-- Language auto-redirect disabled inside preview -->'
   );
 
   output = output.replace(
@@ -84,15 +122,12 @@ function rewriteDistillPreviewHtml(html, { slug, bundle, lang, published }) {
       `${attr}="/api/vault/asset?bundle=${encodeURIComponent(bundle)}&lang=${lang}&path=${encodeURIComponent(`assets/${assetFile}`)}"`
   );
 
-  output = output.replace(
-    /<a href="\/(?:en\/)?blog">← \/(?:en\/)?blog<\/a>/g,
-    '<a href="/vault">← /vault</a>'
-  );
+  output = output.replace(/<a href="\/(?:en\/)?blog">← \/(?:en\/)?blog<\/a>/g, backLinkHtml);
 
   const escapedBundle = bundle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   output = output.replace(
     new RegExp(`<a href="\\/(?:en\\/)?blog\\/${escapedBundle}\\/\\?lang=(?:en|de)" class="lang-toggle">`, 'g'),
-    `<a href="/api/vault/preview?slug=${encodeURIComponent(slug)}&lang=${otherLang}" class="lang-toggle">`
+    `<a href="${baseRoute}?slug=${encodeURIComponent(slug)}&lang=${otherLang}" class="lang-toggle">`
   );
 
   const banner = buildVaultBannerHtml({
@@ -101,6 +136,8 @@ function rewriteDistillPreviewHtml(html, { slug, bundle, lang, published }) {
     published,
     isDistill: true,
     hasDistill: true,
+    viewerMode,
+    expiresAt,
   });
 
   output = output.replace(/<body([^>]*)>/i, `<body$1>${banner}`);
@@ -124,7 +161,9 @@ function formatPreviewDate(dateStr, lang) {
   });
 }
 
-export async function renderVaultPreview(slug, lang, mode = 'default') {
+export async function renderVaultPreview(slug, lang, mode = 'default', options = {}) {
+  const viewerMode = options.viewerMode === 'share' ? 'share' : 'admin';
+  const expiresAt = options.expiresAt ?? null;
   const post = loadPostForPreview(slug, lang);
 
   if (post.distillHtml && post.distillBundle && mode !== 'markdown') {
@@ -133,6 +172,8 @@ export async function renderVaultPreview(slug, lang, mode = 'default') {
       bundle: post.distillBundle,
       lang: post.lang,
       published: post.published,
+      viewerMode,
+      expiresAt,
     });
   }
 
@@ -150,7 +191,13 @@ export async function renderVaultPreview(slug, lang, mode = 'default') {
     published: post.published,
     isDistill: false,
     hasDistill: Boolean(post.distillHtml),
+    viewerMode,
+    expiresAt,
   });
+
+  const titlePrefix = viewerMode === 'share' ? '[Entwurf]' : '[Vault]';
+  const bottomHref = viewerMode === 'share' ? (post.lang === 'en' ? '/en/' : '/') : '/vault';
+  const bottomLabel = viewerMode === 'share' ? '← finn-hertsch.de' : '← /vault';
 
   const tocLabel = post.lang === 'en' ? 'Table of Contents' : 'Inhaltsverzeichnis';
   const tocHtml =
@@ -178,7 +225,7 @@ export async function renderVaultPreview(slug, lang, mode = 'default') {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="robots" content="noindex, nofollow, noarchive" />
-  <title>[Vault] ${escapeHtml(post.frontmatter.title)} | Finn Hertsch</title>
+  <title>${titlePrefix} ${escapeHtml(post.frontmatter.title)} | Finn Hertsch</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -222,11 +269,49 @@ ${globalCss}
         </div>
         <hr />
         <div class="bottom-nav">
-          <a href="/vault" class="back-link mono">← /vault</a>
+          <a href="${bottomHref}" class="back-link mono">${bottomLabel}</a>
         </div>
       </article>
     </main>
   </div>
+</body>
+</html>`;
+}
+
+export function renderShareExpiredPage(lang = 'de') {
+  const globalCssPath = path.join(resolveProjectRoot(), 'src/styles/global.css');
+  const globalCss = fs.readFileSync(globalCssPath, 'utf8');
+  const isEn = lang === 'en';
+  const heading = isEn ? 'Link expired or invalid' : 'Teilen-Link abgelaufen oder ungültig';
+  const message = isEn
+    ? 'This temporary read-only draft link is no longer valid. Please ask the author for a new link if needed.'
+    : 'Dieser zeitlich begrenzte Lese-Link für einen unveröffentlichten Entwurf ist abgelaufen oder ungültig.';
+  const homeHref = isEn ? '/en/' : '/';
+
+  return `<!DOCTYPE html>
+<html lang="${isEn ? 'en' : 'de'}">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow, noarchive" />
+  <title>${heading} | Finn Hertsch</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <style>
+${globalCss}
+    .expired-box { margin-top: 3rem; padding: 1.5rem; border: 1px solid var(--border); border-radius: 6px; background: var(--code-bg); }
+    .expired-box h1 { font-size: 1.45rem; margin: 0.35rem 0 0.65rem 0; }
+    .expired-box p { margin: 0 0 1.25rem 0; color: var(--fg-muted); }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <div class="expired-box">
+      <div class="mono text-sm muted">[410 · EXPIRED]</div>
+      <h1>${heading}</h1>
+      <p>${message}</p>
+      <a href="${homeHref}" class="mono text-sm">← finn-hertsch.de</a>
+    </div>
+  </main>
 </body>
 </html>`;
 }

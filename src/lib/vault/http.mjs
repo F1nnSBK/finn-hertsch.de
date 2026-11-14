@@ -1,11 +1,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { resolveProjectRoot } from '../publicationState.mjs';
-import { verifySessionToken } from './crypto.mjs';
+import { verifySessionToken, verifyShareToken } from './crypto.mjs';
 
 const PROD_COOKIE_NAME = '__Host-fh_vault';
 const DEV_COOKIE_NAME = 'fh_vault';
+const PROD_SHARE_COOKIE_NAME = '__Host-fh_share';
+const DEV_SHARE_COOKIE_NAME = 'fh_share';
 const SESSION_TTL_SECONDS = 43200;
+const MAX_SHARE_GRANTS = 6;
 const MAX_FAILED_ATTEMPTS = 6;
 const WINDOW_MS = 10 * 60 * 1000;
 
@@ -90,12 +93,23 @@ function readLocalDotEnv() {
   return entries;
 }
 
+function stripOuterQuotes(value) {
+  const trimmed = value.trim();
+  if (
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
+    return trimmed.slice(1, -1).trim();
+  }
+  return trimmed;
+}
+
 export function getEnvValue(name) {
   if (process.env[name] && process.env[name].trim().length > 0) {
-    return process.env[name].trim();
+    return stripOuterQuotes(process.env[name]);
   }
   const local = readLocalDotEnv();
-  return local[name] ? local[name].trim() : undefined;
+  return local[name] ? stripOuterQuotes(local[name]) : undefined;
 }
 
 export function loadVaultCredentials() {
@@ -131,9 +145,63 @@ export function parseCookies(cookieHeader) {
     if (idx <= 0) continue;
     const k = pair.slice(0, idx).trim();
     const v = pair.slice(idx + 1).trim();
-    map.set(k, decodeURIComponent(v));
+    try {
+      map.set(k, decodeURIComponent(v));
+    } catch {
+      continue;
+    }
   }
   return map;
+}
+
+export function getValidShareGrants(request) {
+  const { sessionSecret } = loadVaultCredentials();
+  const cookies = parseCookies(request.headers.get('cookie'));
+  const raw = cookies.get(PROD_SHARE_COOKIE_NAME) ?? cookies.get(DEV_SHARE_COOKIE_NAME);
+  if (!raw) return [];
+  const grants = [];
+  for (const part of raw.split('|')) {
+    const parsed = verifyShareToken(part, sessionSecret);
+    if (parsed) {
+      grants.push(parsed);
+    }
+  }
+  return grants;
+}
+
+export function findShareGrantForSlug(request, slug) {
+  if (!slug) return null;
+  const grants = getValidShareGrants(request);
+  return grants.find((g) => g.slug === slug) ?? null;
+}
+
+export function hasShareBundleAccess(request, bundleName) {
+  if (!bundleName) return false;
+  const grants = getValidShareGrants(request);
+  return grants.some((g) => g.bundle === bundleName);
+}
+
+export function buildShareCookie(newGrant, request) {
+  const existing = getValidShareGrants(request).filter((g) => g.slug !== newGrant.slug);
+  const merged = [newGrant, ...existing].slice(0, MAX_SHARE_GRANTS);
+  const now = Math.floor(Date.now() / 1000);
+  const maxExp = Math.max(...merged.map((g) => g.exp));
+  const maxAge = Math.max(60, maxExp - now);
+  const serialized = merged.map((g) => g.token).join('|');
+
+  const secure = isSecureRequest(request);
+  const name = secure ? PROD_SHARE_COOKIE_NAME : DEV_SHARE_COOKIE_NAME;
+  const parts = [
+    `${name}=${encodeURIComponent(serialized)}`,
+    'Path=/',
+    'HttpOnly',
+    'SameSite=Lax',
+    `Max-Age=${maxAge}`,
+  ];
+  if (secure) {
+    parts.push('Secure');
+  }
+  return parts.join('; ');
 }
 
 export function hasValidSession(request) {

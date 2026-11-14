@@ -7,6 +7,14 @@
   },
   "rewrites": [
     {
+      "source": "/share/:token",
+      "destination": "/api/vault/share?t=:token"
+    },
+    {
+      "source": "/share",
+      "destination": "/api/vault/share"
+    },
+    {
       "source": "/cv",
       "destination": "/index.html"
     },
@@ -48,6 +56,13 @@
   "headers": [
     {
       "source": "/vault(.*)",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" },
+        { "key": "Cache-Control", "value": "no-store, max-age=0" }
+      ]
+    },
+    {
+      "source": "/share(.*)",
       "headers": [
         { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" },
         { "key": "Cache-Control", "value": "no-store, max-age=0" }

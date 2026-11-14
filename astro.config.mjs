@@ -3,6 +3,7 @@ import { defineConfig } from 'astro/config';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import sitemap from '@astrojs/sitemap';
+import rehypeRawHtmlMath from './src/lib/rehypeRawHtmlMath.mjs';
 import { isPostPublished } from './src/lib/publicationState.mjs';
 import { openEncryptedVaultBundle } from './src/lib/vault/archive.mjs';
 import {
@@ -56,7 +57,7 @@ export default defineConfig({
   },
   markdown: {
     remarkPlugins: [remarkMath],
-    rehypePlugins: [rehypeKatex],
+    rehypePlugins: [rehypeKatex, rehypeRawHtmlMath],
     shikiConfig: {
       theme: 'github-dark',
       wrap: true,

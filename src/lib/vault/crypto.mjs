@@ -8,6 +8,8 @@ const SCRYPT_MAXMEM = 64 * 1024 * 1024;
 const MIN_PASSWORD_LENGTH = 14;
 const MIN_SECRET_LENGTH = 32;
 const TOKEN_VERSION = 'v1';
+const SHARE_TOKEN_VERSION = 's1';
+const SLUG_SAFE_RE = /^[a-z0-9][a-z0-9-]*$/;
 const PASSWORD_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
 
 export function generateStrongPassword(groups = 5, groupLength = 6) {
@@ -176,4 +178,80 @@ export function verifySessionToken(token, secret) {
 
   const now = Math.floor(Date.now() / 1000);
   return exp > now && iat <= now + 60;
+}
+
+export function createShareToken({ slug, bundle = null, ttlSeconds }, secret) {
+  if (typeof secret !== 'string' || secret.length < MIN_SECRET_LENGTH) {
+    throw new Error('Invalid signing secret length.');
+  }
+  if (typeof slug !== 'string' || !SLUG_SAFE_RE.test(slug)) {
+    throw new Error('Invalid post slug for share token.');
+  }
+  if (bundle !== null && (typeof bundle !== 'string' || !SLUG_SAFE_RE.test(bundle))) {
+    throw new Error('Invalid bundle name for share token.');
+  }
+  if (!Number.isFinite(ttlSeconds) || ttlSeconds < 60 || ttlSeconds > 90 * 86400) {
+    throw new Error('Share token TTL out of range.');
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const exp = now + Math.floor(ttlSeconds);
+  const nonce = crypto.randomBytes(12).toString('base64url');
+  const slugPart = Buffer.from(slug, 'utf8').toString('base64url');
+  const bundlePart = bundle ? Buffer.from(bundle, 'utf8').toString('base64url') : '_';
+  const payload = `${SHARE_TOKEN_VERSION}.${slugPart}.${bundlePart}.${now}.${exp}.${nonce}`;
+  const signature = crypto
+    .createHmac('sha256', secret)
+    .update(payload)
+    .digest('base64url');
+  return `${payload}.${signature}`;
+}
+
+export function verifyShareToken(token, secret) {
+  if (typeof token !== 'string' || typeof secret !== 'string' || secret.length < MIN_SECRET_LENGTH) {
+    return null;
+  }
+  const parts = token.trim().split('.');
+  if (parts.length !== 7 || parts[0] !== SHARE_TOKEN_VERSION) {
+    return null;
+  }
+
+  const [, slugPart, bundlePart, iatRaw, expRaw, nonce, providedSig] = parts;
+  const iat = Number.parseInt(iatRaw, 10);
+  const exp = Number.parseInt(expRaw, 10);
+  if (!slugPart || !bundlePart || !Number.isFinite(iat) || !Number.isFinite(exp) || !nonce || !providedSig) {
+    return null;
+  }
+
+  const payload = `${parts[0]}.${slugPart}.${bundlePart}.${iatRaw}.${expRaw}.${nonce}`;
+  const expectedBuf = crypto.createHmac('sha256', secret).update(payload).digest();
+  const providedBuf = Buffer.from(providedSig, 'base64url');
+  if (providedBuf.length !== expectedBuf.length) {
+    return null;
+  }
+  if (!crypto.timingSafeEqual(providedBuf, expectedBuf)) {
+    return null;
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  if (exp <= now || iat > now + 60) {
+    return null;
+  }
+
+  let slug;
+  let bundle = null;
+  try {
+    slug = Buffer.from(slugPart, 'base64url').toString('utf8');
+    if (bundlePart !== '_') {
+      bundle = Buffer.from(bundlePart, 'base64url').toString('utf8');
+    }
+  } catch {
+    return null;
+  }
+
+  if (!SLUG_SAFE_RE.test(slug) || (bundle !== null && !SLUG_SAFE_RE.test(bundle))) {
+    return null;
+  }
+
+  return { slug, bundle, iat, exp, token: token.trim() };
 }

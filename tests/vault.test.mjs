@@ -4,6 +4,7 @@ import * as sessionRoute from '../api/vault/session.mjs';
 import * as previewRoute from '../api/vault/preview.mjs';
 import * as assetRoute from '../api/vault/asset.mjs';
 import * as publishRoute from '../api/vault/publish.mjs';
+import * as shareRoute from '../api/vault/share.mjs';
 import { hashPassword, verifyPassword } from '../src/lib/vault/crypto.mjs';
 import { isPostPublished } from '../src/lib/publicationState.mjs';
 
@@ -46,6 +47,15 @@ test('unauthenticated requests to session, preview, asset, and publish are rejec
     })
   );
   assert.equal(publishRes.status, 401);
+
+  const shareCreateUnauth = await shareRoute.POST(
+    new Request('http://localhost:4321/api/vault/share', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Origin: 'http://localhost:4321' },
+      body: JSON.stringify({ slug: 'example-draft', ttlHours: 48 }),
+    })
+  );
+  assert.equal(shareCreateUnauth.status, 401);
 });
 
 test('authenticated session decrypts AES-256-GCM bundle, previews drafts, blocks path traversal, and toggles publish state', async () => {
@@ -113,6 +123,18 @@ test('authenticated session decrypts AES-256-GCM bundle, previews drafts, blocks
   const mdBody = await mdPreview.text();
   assert.match(mdBody, /katex/);
   assert.match(mdBody, /Inhaltsverzeichnis/);
+  assert.doesNotMatch(mdBody, /\$\\pi\^\{\(l\)\}/);
+  assert.match(mdBody, /blockquote class="phil-quote"[\s\S]*?class="katex"/);
+
+  const distillMdMode = await previewRoute.GET(
+    new Request(
+      `http://localhost:4321/api/vault/preview?slug=${distillDraft.slug}&lang=de&mode=markdown`,
+      { headers: { Cookie: cookieHeader } }
+    )
+  );
+  assert.equal(distillMdMode.status, 200);
+  const distillMdBody = await distillMdMode.text();
+  assert.doesNotMatch(distillMdBody, /\$16 \\times/);
 
   const svgRes = await assetRoute.GET(
     new Request(
@@ -190,4 +212,85 @@ test('authenticated session decrypts AES-256-GCM bundle, previews drafts, blocks
   } finally {
     delete process.env.VERCEL;
   }
+});
+
+test('read-only share links exchange token into scoped cookie and enforce per-article isolation', async () => {
+  const loginRes = await sessionRoute.POST(
+    new Request('http://localhost:4321/api/vault/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Origin: 'http://localhost:4321' },
+      body: JSON.stringify({ password: TEST_PASSWORD }),
+    })
+  );
+  const adminCookie = (loginRes.headers.get('set-cookie') || '').split(';')[0];
+  const { posts } = await loginRes.json();
+  const distillDraft = posts.find((p) => !p.published && p.distillBundle);
+  const mdDraft = posts.find((p) => !p.published && !p.distillBundle);
+
+  const createRes = await shareRoute.POST(
+    new Request('http://localhost:4321/api/vault/share', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: adminCookie,
+        Origin: 'http://localhost:4321',
+      },
+      body: JSON.stringify({ slug: distillDraft.slug, ttlHours: 48, lang: 'de' }),
+    })
+  );
+  assert.equal(createRes.status, 200);
+  const sharePayload = await createRes.json();
+  assert.match(sharePayload.url, /^http:\/\/localhost:4321\/share\/s1\./);
+  const rawToken = decodeURIComponent(sharePayload.url.split('/share/')[1]);
+
+  const exchangeRes = await shareRoute.GET(
+    new Request(`http://localhost:4321/api/vault/share?t=${encodeURIComponent(rawToken)}`)
+  );
+  assert.equal(exchangeRes.status, 302);
+  assert.equal(
+    exchangeRes.headers.get('location'),
+    `/share?slug=${encodeURIComponent(distillDraft.slug)}&lang=de`
+  );
+  const shareSetCookie = exchangeRes.headers.get('set-cookie') || '';
+  assert.match(shareSetCookie, /fh_share=/);
+  assert.match(shareSetCookie, /HttpOnly/);
+  assert.match(shareSetCookie, /SameSite=Lax/);
+  const readerCookie = shareSetCookie.split(';')[0];
+
+  const readSharedRes = await shareRoute.GET(
+    new Request(`http://localhost:4321/share?slug=${distillDraft.slug}&lang=de`, {
+      headers: { Cookie: readerCookie },
+    })
+  );
+  assert.equal(readSharedRes.status, 200);
+  const sharedHtml = await readSharedRes.text();
+  assert.match(sharedHtml, /GETEILTER ENTWURF · NUR LESEN/);
+  assert.doesNotMatch(sharedHtml, /href="\/vault"/);
+
+  const sharedAssetRes = await assetRoute.GET(
+    new Request(
+      `http://localhost:4321/api/vault/asset?bundle=${distillDraft.distillBundle}&lang=de&path=assets/architecture.svg`,
+      { headers: { Cookie: readerCookie } }
+    )
+  );
+  assert.equal(sharedAssetRes.status, 200);
+
+  const otherDraftRes = await shareRoute.GET(
+    new Request(`http://localhost:4321/share?slug=${mdDraft.slug}&lang=de`, {
+      headers: { Cookie: readerCookie },
+    })
+  );
+  assert.equal(otherDraftRes.status, 410);
+
+  const adminEscalationRes = await sessionRoute.GET(
+    new Request('http://localhost:4321/api/vault/session', {
+      headers: { Cookie: readerCookie },
+    })
+  );
+  assert.equal(adminEscalationRes.status, 401);
+
+  const tamperedRes = await shareRoute.GET(
+    new Request(`http://localhost:4321/api/vault/share?t=${encodeURIComponent(rawToken)}tamper`)
+  );
+  assert.equal(tamperedRes.status, 410);
 });

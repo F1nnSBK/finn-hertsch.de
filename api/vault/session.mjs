@@ -45,15 +45,15 @@ export async function POST(request) {
       throw new VaultBadRequestError('Request body must be valid JSON.');
     }
 
-    const password = typeof body?.password === 'string' ? body.password : '';
+    const password = typeof body?.password === 'string' ? body.password.trim() : '';
     if (!password) {
-      throw new VaultBadRequestError('Password is required.');
+      throw new VaultBadRequestError('Passwort erforderlich.');
     }
 
     const valid = verifyPassword(password, passwordHash);
     if (!valid) {
       recordFailedLogin(request);
-      throw new VaultAuthError('Invalid password.');
+      throw new VaultAuthError('Zugriff verweigert.');
     }
 
     clearFailedLogins(request);

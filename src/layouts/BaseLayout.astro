@@ -149,7 +149,7 @@ const activeSchema = schema ?? defaultSchema;
         <script is:inline>
           window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
           window.va('beforeSend', function (event) {
-            if (event && event.url && (event.url.indexOf('/vault') !== -1 || event.url.indexOf('/api/') !== -1)) {
+            if (event && event.url && (event.url.indexOf('/vault') !== -1 || event.url.indexOf('/share') !== -1 || event.url.indexOf('/api/') !== -1)) {
               return null;
             }
             return event;

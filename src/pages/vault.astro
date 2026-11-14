@@ -215,6 +215,141 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
       controls.appendChild(actionGroup);
       li.appendChild(controls);
+
+      if (!post.published) {
+        const shareBar = document.createElement('div');
+        shareBar.className = 'share-row mono';
+
+        const shareLeft = document.createElement('div');
+        shareLeft.className = 'share-controls';
+
+        const shareLabel = document.createElement('span');
+        shareLabel.className = 'share-label muted';
+        shareLabel.textContent = 'Lese-Link:';
+        shareLeft.appendChild(shareLabel);
+
+        const ttlSelect = document.createElement('select');
+        ttlSelect.className = 'share-select mono';
+        ttlSelect.setAttribute('aria-label', 'Gültigkeitsdauer');
+        [
+          { value: '24', label: '24 Std.' },
+          { value: '48', label: '48 Std.' },
+          { value: '72', label: '72 Std.' },
+          { value: '168', label: '7 Tage' },
+          { value: '336', label: '14 Tage' },
+          { value: '720', label: '30 Tage' },
+        ].forEach(function (opt) {
+          const optionEl = document.createElement('option');
+          optionEl.value = opt.value;
+          optionEl.textContent = opt.label;
+          if (opt.value === '48') optionEl.selected = true;
+          ttlSelect.appendChild(optionEl);
+        });
+        shareLeft.appendChild(ttlSelect);
+
+        const langSelect = document.createElement('select');
+        langSelect.className = 'share-select share-select-lang mono';
+        langSelect.setAttribute('aria-label', 'Startsprache');
+        if (post.hasDe) {
+          const deOpt = document.createElement('option');
+          deOpt.value = 'de';
+          deOpt.textContent = 'DE';
+          langSelect.appendChild(deOpt);
+        }
+        if (post.hasEn) {
+          const enOpt = document.createElement('option');
+          enOpt.value = 'en';
+          enOpt.textContent = 'EN';
+          langSelect.appendChild(enOpt);
+        }
+        shareLeft.appendChild(langSelect);
+
+        const shareBtn = document.createElement('button');
+        shareBtn.type = 'button';
+        shareBtn.className = 'ghost-btn mono';
+        shareBtn.textContent = 'Teilen-Link erstellen';
+
+        const shareResultWrap = document.createElement('div');
+        shareResultWrap.className = 'share-result';
+        shareResultWrap.hidden = true;
+
+        const shareInput = document.createElement('input');
+        shareInput.type = 'text';
+        shareInput.readOnly = true;
+        shareInput.className = 'share-url-input mono';
+        shareInput.addEventListener('click', function () {
+          shareInput.select();
+        });
+
+        const shareMeta = document.createElement('span');
+        shareMeta.className = 'share-meta muted';
+
+        shareResultWrap.appendChild(shareInput);
+        shareResultWrap.appendChild(shareMeta);
+
+        shareBtn.addEventListener('click', async function () {
+          shareBtn.disabled = true;
+          const prevLabel = shareBtn.textContent;
+          shareBtn.textContent = 'Erstelle …';
+
+          try {
+            const res = await fetch('/api/vault/share', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                slug: post.slug,
+                ttlHours: Number(ttlSelect.value),
+                lang: langSelect.value || 'de',
+              }),
+            });
+            const payload = await res.json();
+            if (!res.ok) {
+              showBanner(payload.error || 'Teilen-Link konnte nicht erstellt werden.', 'error');
+              shareBtn.textContent = prevLabel;
+              return;
+            }
+
+            shareInput.value = payload.url;
+            shareResultWrap.hidden = false;
+
+            const expDate = new Date(payload.expiresAt * 1000).toLocaleString('de-DE', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            });
+
+            let copied = false;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              try {
+                await navigator.clipboard.writeText(payload.url);
+                copied = true;
+              } catch (_clipErr) {
+                copied = false;
+              }
+            }
+
+            shareMeta.textContent =
+              (copied ? 'In Zwischenablage kopiert · ' : '') + 'gültig bis ' + expDate;
+            shareBtn.textContent = copied ? 'Kopiert ✓' : 'Neu erstellen';
+            setTimeout(function () {
+              shareBtn.textContent = 'Teilen-Link erstellen';
+            }, 2400);
+          } catch (_err) {
+            showBanner('Netzwerkfehler beim Erstellen des Teilen-Links.', 'error');
+            shareBtn.textContent = prevLabel;
+          } finally {
+            shareBtn.disabled = false;
+          }
+        });
+
+        shareLeft.appendChild(shareBtn);
+        shareBar.appendChild(shareLeft);
+        shareBar.appendChild(shareResultWrap);
+        li.appendChild(shareBar);
+      }
+
       return li;
     }
 
@@ -593,5 +728,76 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     font-size: 0.78rem;
     color: var(--fg-muted);
     margin-right: 0.25rem;
+  }
+
+  :global(.share-row) {
+    margin-top: 0.85rem;
+    padding-top: 0.85rem;
+    border-top: 1px dashed var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  :global(.share-controls) {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  :global(.share-label) {
+    font-size: 0.78rem;
+    margin-right: 0.2rem;
+  }
+
+  :global(.share-select) {
+    appearance: none;
+    -webkit-appearance: none;
+    font-size: 0.8rem;
+    padding: 0.48rem 1.85rem 0.48rem 0.65rem;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background-color: var(--bg);
+    color: var(--fg);
+    cursor: pointer;
+    outline: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%238c8c8c' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.6rem center;
+  }
+
+  :global(.share-select-lang) {
+    padding-right: 1.65rem;
+  }
+
+  :global(.share-select:hover),
+  :global(.share-select:focus) {
+    border-color: var(--fg);
+  }
+
+  :global(.share-result) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  :global(.share-url-input) {
+    width: 100%;
+    font-size: 0.78rem;
+    padding: 0.5rem 0.65rem;
+    background: var(--bg);
+    color: var(--fg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    outline: none;
+  }
+
+  :global(.share-url-input:focus) {
+    border-color: var(--fg);
+  }
+
+  :global(.share-meta) {
+    font-size: 0.74rem;
   }
 </style>

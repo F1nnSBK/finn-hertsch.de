@@ -10,12 +10,15 @@ import * as sessionHandler from '../../../api/vault/session.mjs';
 import * as publishHandler from '../../../api/vault/publish.mjs';
 import * as previewHandler from '../../../api/vault/preview.mjs';
 import * as assetHandler from '../../../api/vault/asset.mjs';
+import * as shareHandler from '../../../api/vault/share.mjs';
 
 const API_ROUTES = {
   '/api/vault/session': sessionHandler,
   '/api/vault/publish': publishHandler,
   '/api/vault/preview': previewHandler,
   '/api/vault/asset': assetHandler,
+  '/api/vault/share': shareHandler,
+  '/share': shareHandler,
 };
 
 const DISTILL_MIME = {
@@ -101,7 +104,13 @@ export function vaultDevServerPlugin(publicDir) {
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
         if (!req.url) return next();
-        const [pathname, query] = req.url.split('?');
+        let [pathname, query] = req.url.split('?');
+
+        if (pathname.startsWith('/share/') && pathname.length > '/share/'.length) {
+          const rawToken = pathname.slice('/share/'.length);
+          req.url = `/api/vault/share?t=${rawToken}${query ? `&${query}` : ''}`;
+          [pathname, query] = req.url.split('?');
+        }
 
         const routeModule = API_ROUTES[pathname];
         if (routeModule) {
