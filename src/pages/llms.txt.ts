@@ -25,7 +25,7 @@ export const GET: APIRoute = async () => {
   const body = [
     '# Finn Hertsch',
     '',
-    '> Dual student in Data Science & Artificial Intelligence at DHBW Ravensburg. Researcher focusing on Representation Geometry, Self-Supervised Vision, Linear Attention Architectures, and High-Throughput Stream Processing. Based in Wangen im Allgäu, Germany.',
+    '> Dual student in Data Science & Artificial Intelligence at DHBW Ravensburg. Researcher focusing on Representation Learning, Self-Supervised Computer Vision, Linear Attention Architectures, and High-Throughput Stream Processing. Based in Wangen im Allgäu, Germany.',
     '',
     '## Research & Publications',
     '',

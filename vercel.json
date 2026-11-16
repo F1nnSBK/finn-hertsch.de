@@ -33,6 +33,11 @@
   ],
   "redirects": [
     {
+      "source": "/sitemap.xml",
+      "destination": "/sitemap-index.xml",
+      "permanent": true
+    },
+    {
       "source": "/essays",
       "destination": "/blog/",
       "permanent": true

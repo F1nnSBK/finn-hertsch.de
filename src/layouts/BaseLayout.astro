@@ -14,7 +14,7 @@ interface Props {
 
 const { 
   title = "Finn Hertsch", 
-  description = "Finn Hertsch – Research in Representation Geometry, Self-Supervised Vision & Stream Processing.",
+  description = "Finn Hertsch – Research in Representation Learning, Self-Supervised Computer Vision & Stream Processing.",
   lang = "de",
   canonical,
   ogType = "website",
@@ -51,8 +51,9 @@ const deUrl = new URL(dePath, siteOrigin).href;
 const enUrl = new URL(enPath, siteOrigin).href;
 
 const knowsAbout = [
-  "Representation Geometry",
-  "Self-Supervised Learning",
+  "Representation Learning",
+  "Self-Supervised Computer Vision",
+  "Stream Processing",
   "Linear Attention",
   "Reinforcement Learning",
   "Multi-Armed Bandits"
@@ -64,9 +65,14 @@ const personSchema = {
   "@id": "https://finn-hertsch.de/#person",
   "name": "Finn Hertsch",
   "url": "https://finn-hertsch.de/",
+  "description": "Dual student in Data Science & Artificial Intelligence at DHBW Ravensburg researching representation learning, self-supervised computer vision, and stream processing.",
   "jobTitle": "Data Science & AI Researcher",
-  "worksFor": {
-    "@type": "Organization",
+  "homeLocation": {
+    "@type": "Place",
+    "name": "Wangen im Allgäu, Germany"
+  },
+  "affiliation": {
+    "@type": "CollegeOrUniversity",
     "name": "DHBW Ravensburg",
     "url": "https://www.ravensburg.dhbw.de/"
   },
@@ -115,6 +121,7 @@ const activeSchema = schema ?? defaultSchema;
     {noindex && <meta name="robots" content="noindex, nofollow, noarchive" />}
     <title>{title}</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    {!noindex && <link rel="sitemap" type="application/xml" href="/sitemap-index.xml" />}
     {!noindex && <link rel="canonical" href={canonicalUrl} />}
     {isBilingual && !noindex && (
       <>
